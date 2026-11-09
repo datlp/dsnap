@@ -9,6 +9,10 @@ dsnap.res
 __pycache__/
 *.pyc
 
-# Local config / logs
+# Local config / logs / docs
 *.log
+*.pdf
+*.mp4
+*.png
+
 
