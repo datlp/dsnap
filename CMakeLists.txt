@@ -30,6 +30,7 @@ target_link_libraries(dsnap PRIVATE
     ole32
     oleaut32
     strmiids
+    urlmon
 )
 
 if(MSVC)

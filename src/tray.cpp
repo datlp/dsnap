@@ -108,6 +108,9 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (g_isRecording) {
                 StopRecording(false);
             } else {
+                if (!EnsureFFmpegAvailable(hWnd)) {
+                    break;
+                }
                 TriggerOverlay(MODE_VIDEO);
             }
         }

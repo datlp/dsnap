@@ -6,7 +6,7 @@
 
 > **A featherweight (< 450 KB), zero-dependency native Windows region screenshot & screen recording utility powered by Win32 API, GDI+, WASAPI Loopback, and FFmpeg.**
 
-[⬇️ **Download Latest Release (dsnap.exe)**](https://github.com/datlp/dsnap/releases/latest/download/dsnap.exe) • [📦 **Download ZIP Archive**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.0-windows-x64.zip)
+[⬇️ **Download Latest Release (dsnap.exe)**](https://github.com/datlp/dsnap/releases/latest/download/dsnap.exe) • [📦 **Download ZIP Archive**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.1-windows-x64.zip)
 
 ---
 
@@ -24,6 +24,9 @@
     - `⏸ / ▶`: Instant Pause / Resume via low-level `NtSuspendProcess` / `NtResumeProcess`.
     - `⏹`: Stop recording and finalize the MP4 container cleanly.
     - `✕`: Cancel recording instantly and **automatically delete partial video**.
+- **Automatic 1-Click FFmpeg Setup**:
+  - If `ffmpeg.exe` is not found, dsnap prompts with a 1-click confirmation dialog to download and extract the portable core automatically in the background.
+  - Delivered via high-speed GitHub Releases CDN mirror with native Windows extraction and zero manual configuration.
 - **Orphan-Proof Process Management**:
   - FFmpeg process is attached to a **Windows Job Object** (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`).
   - Guarantees zero zombie `ffmpeg.exe` processes and eliminates file-in-use locking bugs even if dsnap crashes or is killed.
@@ -75,7 +78,7 @@ Right-click the `dsnap` icon in the system tray to access options:
 
 ### Prerequisites
 - **Windows 10 / 11** (64-bit recommended)
-- **FFmpeg**: Ensure `ffmpeg.exe` is either available in your system `PATH` or placed in the same folder as `dsnap.exe`.
+- **FFmpeg**: If not already present in PATH or folder, dsnap will prompt to automatically install it on first recording.
 
 ### Running
 Simply run `dsnap.exe`. It will minimize to the Windows System Tray (notification area) and listen for global capture hotkeys.

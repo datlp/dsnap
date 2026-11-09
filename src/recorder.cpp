@@ -208,11 +208,11 @@ void StartRecording(int x, int y, int w, int h) {
     h -= (h % 2);
     if (w <= 0 || h <= 0) return;
 
+    if (!EnsureFFmpegAvailable(g_hMainWnd)) {
+        return;
+    }
     std::wstring ffmpegPath = FindFFmpegPath();
     if (ffmpegPath.empty()) {
-        MessageBoxW(NULL,
-            L"ffmpeg.exe was not found in the dsnap folder or system PATH!\n\nPlease install FFmpeg or place ffmpeg.exe in the same directory.",
-            L"dsnap - FFmpeg Missing", MB_ICONWARNING | MB_TOPMOST);
         return;
     }
 
