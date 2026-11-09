@@ -191,7 +191,7 @@ New users often forget the global hotkeys to trigger screenshot capture or scree
 ## Issue #10: [Installer] Implement dual-mode Inno Setup installer (All-Users vs. Per-User)
 
 **Labels:** `installer`, `enhancement`, `windows`
-**Status:** `Open (Planned)`
+**Status:** `Closed (v1.0.2)`
 
 ### Description
 Provide a modern Windows setup wizard inspired by AutoHotkey's distribution model that accommodates both enterprise environments (system-wide `C:\Program Files`) and standard user accounts without administrator privileges (`%LocalAppData%\Programs`).
@@ -205,12 +205,14 @@ Provide a modern Windows setup wizard inspired by AutoHotkey's distribution mode
 - Register uninstaller cleanly in Windows Settings (`Apps & Features`) with application icon, publisher, and version.
 - Support silent automation switches (`/VERYSILENT`, `/ALLUSERS`, `/CURRENTUSER`) for package managers.
 
+**Commit:** `ci: build installer and publish versioned release assets with SHA256SUMS on tag (#10, #12, #14)`
+
 ---
 
 ## Issue #11: [Core] Add Portable Mode with local configuration (`dsnap.ini`)
 
 **Labels:** `core`, `portability`, `enhancement`
-**Status:** `Open (Planned)`
+**Status:** `Closed (v1.0.2)`
 
 ### Description
 Ensure `dsnap` can run fully self-contained from a USB drive or arbitrary folder without leaving traces in the Windows Registry.
@@ -220,23 +222,28 @@ Ensure `dsnap` can run fully self-contained from a USB drive or arbitrary folder
 - When portable mode is active, read/write configuration (`RecordAudio`, autostart, hotkeys) to local `dsnap.ini` via Win32 `GetPrivateProfileStringW` / `WritePrivateProfileStringW`.
 - Maintain 100% zero-footprint portable execution when running from `dsnap-windows-x64.zip`.
 
+**Commit:** `feat(core): add portable mode with local dsnap.ini configuration (#11)`
+
 ---
 
 ## Issue #12: [CI/CD] Automate installer packaging in build scripts and GitHub Releases
 
 **Labels:** `ci`, `automation`, `devops`
-**Status:** `Open (Planned)`
+**Status:** `Closed (v1.0.2)`
 
 ### Description
 Standardize the release distribution pipeline across local development and GitHub Actions.
 
 ### Solution
 - Add `build.bat installer` target that invokes `iscc.exe installer\dsnap.iss`.
-- Update GitHub Actions workflow to compile and upload four standard release assets on tag push:
+- Update GitHub Actions workflow to compile and upload standard release assets on tag push:
   1. `dsnap-v<version>-setup.exe` (Universal Inno Setup Installer)
   2. `dsnap-v<version>-windows-x64.exe` (Versioned standalone portable)
   3. `dsnap-v<version>-windows-x64.zip` (Portable ZIP package)
   4. `dsnap.exe` (Static standalone for permalinks & Winget CLI)
+  5. `SHA256SUMS.txt`
+
+**Commit:** `ci: build installer and publish versioned release assets with SHA256SUMS on tag (#10, #12, #14)`
 
 ---
 
@@ -251,3 +258,41 @@ Allow users to install and update `dsnap` via `winget install datlp.dsnap`.
 ### Solution
 - Generate `microsoft/winget-pkgs` manifest using `wingetcreate`.
 - Configure manifest to consume `dsnap-v<version>-setup.exe` with silent install flags `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`.
+
+---
+
+## Issue #14: [Release] Publish versioned installer and consistent versioned asset names
+
+**Labels:** `release`, `enhancement`
+**Status:** `Closed (v1.0.2)`
+
+### Description
+Standardize asset naming across all releases to follow the `<name>-v<version>-<variant>.<ext>` pattern (similar to `ytmusic-morphe-v9.30.53.apk`) and include the compiled Inno Setup installer.
+
+### Solution
+- Version dynamically passed into Inno Setup via `/DMyAppVersion=<ver>`.
+- Workflow validates `dsnap.exe` internal file version matches tag name before releasing.
+- Assets published for each release:
+  - `dsnap-v<version>-setup.exe` (Inno Setup)
+  - `dsnap-v<version>-windows-x64.exe`
+  - `dsnap-v<version>-windows-x64.zip`
+  - `dsnap.exe` (permalink)
+  - `SHA256SUMS.txt`
+
+**Commit:** `ci: build installer and publish versioned release assets with SHA256SUMS on tag (#10, #12, #14)`
+
+---
+
+## Issue #15: [Build] Embed version info (VERSIONINFO) in dsnap.exe
+
+**Labels:** `build`, `enhancement`
+**Status:** `Closed (v1.0.2)`
+
+### Description
+Windows Explorer Properties > Details was empty. Adding a `VERSIONINFO` resource establishes publisher metadata and binary versioning for SmartScreen and Antivirus reputation.
+
+### Solution
+- Define version macros centrally in `res/version.h` (`DSNAP_VERSION_MAJOR`, `MINOR`, `PATCH`, `STR`, `RC`).
+- Add standard `VS_VERSION_INFO VERSIONINFO` block in `res/dsnap.rc` specifying `CompanyName`, `FileDescription`, `FileVersion`, `ProductVersion`, and `LegalCopyright`.
+
+**Commit:** `feat(build): embed VERSIONINFO resource in dsnap.exe (#15)`

@@ -5,3 +5,4 @@
 #define DSNAP_VERSION_PATCH 2
 #define DSNAP_VERSION_STR   "1.0.2"
 #define DSNAP_VERSION_RC    1,0,2,0
+
