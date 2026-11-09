@@ -24,7 +24,7 @@ void ShowContextMenu(HWND hWnd) {
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
 
     UINT audioFlag = g_recordAudio ? MF_CHECKED : MF_UNCHECKED;
-    AppendMenuW(hMenu, MF_STRING | audioFlag, IDM_TOGGLE_AUDIO, L"🎙️ Record Audio");
+    AppendMenuW(hMenu, MF_STRING | audioFlag, IDM_TOGGLE_AUDIO, L"🎙️ Record System Audio");
 
     UINT autostartFlag = IsAutoStartEnabled() ? MF_CHECKED : MF_UNCHECKED;
     AppendMenuW(hMenu, MF_STRING | autostartFlag, IDM_AUTOSTART, L"Start with Windows");

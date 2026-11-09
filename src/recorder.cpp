@@ -235,9 +235,13 @@ void StartRecording(int x, int y, int w, int h) {
         L" -i desktop";
 
     if (g_recordAudio) {
-        std::wstring audioDev = GetDefaultDirectShowAudioDevice();
-        if (!audioDev.empty()) {
-            cmd += L" -f dshow -i audio=\"" + audioDev + L"\" -c:a aac -b:a 128k";
+        std::wstring audioPipe;
+        DWORD sampleRate = 48000;
+        WORD channels = 2;
+        if (StartSystemAudioLoopback(audioPipe, sampleRate, channels)) {
+            cmd += L" -f f32le -ar " + std::to_wstring(sampleRate) +
+                   L" -ac " + std::to_wstring(channels) +
+                   L" -i \"" + audioPipe + L"\" -c:a aac -b:a 192k";
         }
     }
 
@@ -312,6 +316,9 @@ void StartRecording(int x, int y, int w, int h) {
             ShowWindow(g_hWndRecordingToolbar, SW_SHOWNOACTIVATE);
         }
     } else {
+        if (g_recordAudio) {
+            StopSystemAudioLoopback();
+        }
         CloseHandle(g_hFFmpegStdinWrite);
         g_hFFmpegStdinWrite = NULL;
         MessageBoxW(NULL, L"Failed to start FFmpeg process!", L"dsnap - Error", MB_ICONERROR);
@@ -337,6 +344,10 @@ void TogglePauseRecording() {
 
 void StopRecording(bool cancel) {
     if (g_isRecording) {
+        if (g_recordAudio) {
+            StopSystemAudioLoopback();
+        }
+
         if (g_isPaused && pfnNtResumeProcess && g_ffmpegPi.hProcess) {
             pfnNtResumeProcess(g_ffmpegPi.hProcess);
             g_isPaused = false;
