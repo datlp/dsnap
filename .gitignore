@@ -18,5 +18,6 @@ __pycache__/
 *.mp4
 *.png
 *.zip
+!docs/images/*.png
 
 

@@ -137,3 +137,49 @@ Prevent users from launching multiple instances of `dsnap.exe`, which created co
 - **Explorer Crash Recovery:** Handles `RegisterWindowMessageW(L"TaskbarCreated")` to re-register tray icon if Windows Explorer restarts.
 
 **Commit:** `fix: enforce single-instance lifecycle using Global Mutex and FindWindow (#7)`
+
+---
+
+## Issue #8: [Recorder] Add auto-download prompt and background installer for FFmpeg
+
+**Labels:** `enhancement`, `recorder`, `ux`
+**Status:** `Closed (v1.0.1)`
+
+### Description
+Screen recording requires FFmpeg, but users may not have `ffmpeg.exe` installed on their machine or configured in system `PATH`.
+
+### Solution
+- Provide a 1-click confirmation dialog `[Yes] [No]` prompting the user to install FFmpeg automatically.
+- Download portable FFmpeg release mirror (~84 MB) via `URLDownloadToFileW` (`urlmon.dll`) on a background thread.
+- Extract archive directly into application directory via Windows native `tar.exe` (`tar -xf <zip> -C <dest>`) with zero external dependencies.
+- Update system tray tooltip and display native Windows balloon notifications during and upon completion.
+
+**Commit:** `feat(recorder): add auto-download prompt for FFmpeg and bump to v1.0.1 (#8)`
+
+---
+
+## Issue #9: [UI] Show shortcut hotkey hints in tray tooltip and capture overlay
+
+**Labels:** `enhancement`, `ui`, `ux`
+**Status:** `Open (Planned)`
+
+### Description
+Currently, hovering the cursor over the system tray icon displays only a static tooltip: `dsnap (Ready)`.
+
+![Current Tray Tooltip](docs/images/tray_tooltip_current.png)
+
+New users often forget the global hotkeys to trigger screenshot capture or screen recording and must right-click the tray menu to check.
+
+### Proposed Solution
+1. **Multi-line / Detailed System Tray Tooltip (`szTip`):**
+   Update `NOTIFYICONDATAW.szTip` to show clear hotkey hints:
+   ```text
+   dsnap
+   • Capture: PrtScn
+   • Record: Shift + PrtScn
+   ```
+   *(Note: Win32 `NOTIFYICONDATAW` supports multi-line tooltips up to 128 characters when using Shell32 V5 / `NOTIFYICON_VERSION_4`)*.
+2. **On-Screen Selection Hint:**
+   Display a subtle floating tip HUD near the selection cursor or at top-center during overlay mode:
+   - Photo mode: *"Drag to select • Enter / Double-click to copy & save • Esc to cancel"*
+   - Video mode: *"Drag to select recording region • Esc to cancel"*
