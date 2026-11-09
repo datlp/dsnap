@@ -406,6 +406,6 @@ void StopRecording(bool cancel) {
             g_hWndRecordingBorder = NULL;
         }
 
-        UpdateTrayTip(L"dsnap (Ready)");
+        UpdateTrayTip(TRAY_TIP_DEFAULT);
     }
 }

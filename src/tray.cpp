@@ -52,7 +52,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         g_nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_INFO;
         g_nid.uCallbackMessage = WM_TRAYICON;
         g_nid.hIcon = g_hAppIcon ? g_hAppIcon : LoadIcon(NULL, IDI_APPLICATION);
-        wcscpy_s(g_nid.szTip, L"dsnap (Ready)");
+        wcscpy_s(g_nid.szTip, TRAY_TIP_DEFAULT);
         wcscpy_s(g_nid.szInfoTitle, L"dsnap is running!");
         wcscpy_s(g_nid.szInfo, L"dsnap is ready in system tray!\nPress PrtScn to capture, Shift+PrtScn to record.");
         g_nid.dwInfoFlags = NIIF_INFO;

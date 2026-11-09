@@ -170,7 +170,7 @@ static void DownloadFFmpegWorker() {
             wcscpy_s(nid.szInfo, L"FFmpeg installed successfully!\nYou can now record your screen (Shift + PrtScn).");
             nid.dwInfoFlags = NIIF_INFO;
             Shell_NotifyIconW(NIM_MODIFY, &nid);
-            UpdateTrayTip(L"dsnap (Ready)");
+            UpdateTrayTip(TRAY_TIP_DEFAULT);
             g_isDownloadingFFmpeg = false;
             return;
         }
@@ -181,7 +181,7 @@ static void DownloadFFmpegWorker() {
     wcscpy_s(nid.szInfo, L"Could not download FFmpeg automatically. Please check your internet connection.");
     nid.dwInfoFlags = NIIF_WARNING;
     Shell_NotifyIconW(NIM_MODIFY, &nid);
-    UpdateTrayTip(L"dsnap (Ready)");
+    UpdateTrayTip(TRAY_TIP_DEFAULT);
     g_isDownloadingFFmpeg = false;
 }
 

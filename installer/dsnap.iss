@@ -89,3 +89,4 @@ begin
   Result := True;
   Exec('taskkill.exe', '/F /IM dsnap.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
+

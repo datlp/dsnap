@@ -161,7 +161,7 @@ Screen recording requires FFmpeg, but users may not have `ffmpeg.exe` installed 
 ## Issue #9: [UI] Show shortcut hotkey hints in tray tooltip and capture overlay
 
 **Labels:** `enhancement`, `ui`, `ux`
-**Status:** `Open (Planned)`
+**Status:** `Closed (v1.0.2)`
 
 ### Description
 Currently, hovering the cursor over the system tray icon displays only a static tooltip: `dsnap (Ready)`.
@@ -183,6 +183,8 @@ New users often forget the global hotkeys to trigger screenshot capture or scree
    Display a subtle floating tip HUD near the selection cursor or at top-center during overlay mode:
    - Photo mode: *"Drag to select • Enter / Double-click to copy & save • Esc to cancel"*
    - Video mode: *"Drag to select recording region • Esc to cancel"*
+
+**Commit:** `feat(ui): add multi-line tray hotkey hints and overlay floating HUD (#9)`
 
 ---
 

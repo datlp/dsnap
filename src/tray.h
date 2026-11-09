@@ -1,6 +1,8 @@
 #pragma once
 #include "common.h"
 
+#define TRAY_TIP_DEFAULT L"dsnap\n• Capture: PrtScn\n• Record: Shift + PrtScn"
+
 extern NOTIFYICONDATAW g_nid;
 
 // Display the system tray context menu

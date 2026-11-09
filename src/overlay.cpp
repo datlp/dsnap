@@ -158,6 +158,46 @@ LRESULT CALLBACK OverlayProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
         }
 
+        // Draw HUD hint pill at top-center when idle (not dragging)
+        if (!g_isDragging) {
+            const wchar_t* hint = (g_currentMode == MODE_PHOTO)
+                ? L"📸 Drag to select screenshot area  •  Esc to cancel"
+                : L"🎥 Drag to select recording area  •  Esc to cancel";
+
+            HFONT hHintFont = CreateFontW(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+                DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                VARIABLE_PITCH, L"Segoe UI");
+            HGDIOBJ oldFont = SelectObject(hMemDC, hHintFont);
+
+            SIZE sz;
+            GetTextExtentPoint32W(hMemDC, hint, (int)wcslen(hint), &sz);
+
+            int pillW = sz.cx + 40;
+            int pillH = sz.cy + 18;
+            int pillX = (clientW - pillW) / 2;
+            int pillY = 32;
+
+            HBRUSH hPillBrush = CreateSolidBrush(RGB(15, 23, 42));
+            HPEN hPillPen = CreatePen(PS_SOLID, 1, RGB(71, 85, 105));
+            HGDIOBJ oldPillBrush = SelectObject(hMemDC, hPillBrush);
+            HGDIOBJ oldPillPen = SelectObject(hMemDC, hPillPen);
+
+            RoundRect(hMemDC, pillX, pillY, pillX + pillW, pillY + pillH, 18, 18);
+
+            SelectObject(hMemDC, oldPillBrush);
+            SelectObject(hMemDC, oldPillPen);
+            DeleteObject(hPillBrush);
+            DeleteObject(hPillPen);
+
+            SetBkMode(hMemDC, TRANSPARENT);
+            SetTextColor(hMemDC, RGB(248, 250, 252));
+            RECT rcText = { pillX, pillY, pillX + pillW, pillY + pillH };
+            DrawTextW(hMemDC, hint, -1, &rcText, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+            SelectObject(hMemDC, oldFont);
+            DeleteObject(hHintFont);
+        }
+
         BitBlt(hdc, 0, 0, clientW, clientH, hMemDC, 0, 0, SRCCOPY);
 
         SelectObject(hMemDC, oldMemBmp);
