@@ -15,6 +15,9 @@ std::wstring FindFFmpegPath();
 std::wstring GetDsnapDirectory();
 std::wstring GetTimestampW();
 
+bool IsPortableMode();
+std::wstring GetIniFilePath();
+
 // Checks if FFmpeg is available; if not, prompts user to auto-download via GitHub CDN
 bool EnsureFFmpegAvailable(HWND hWndParent);
 bool IsFFmpegDownloading();

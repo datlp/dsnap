@@ -40,6 +40,10 @@ void SetAutoStart(bool enable) {
 }
 
 bool LoadAudioSetting() {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        return GetPrivateProfileIntW(L"Settings", L"RecordAudio", 0, ini.c_str()) != 0;
+    }
     HKEY hKey;
     DWORD val = 0;
     DWORD size = sizeof(val);
@@ -55,6 +59,11 @@ bool LoadAudioSetting() {
 }
 
 void SaveAudioSetting(bool enable) {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        WritePrivateProfileStringW(L"Settings", L"RecordAudio", enable ? L"1" : L"0", ini.c_str());
+        return;
+    }
     HKEY hKey;
     DWORD val = enable ? 1 : 0;
     if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
@@ -64,6 +73,20 @@ void SaveAudioSetting(bool enable) {
 }
 
 std::wstring GetScreenshotsDir() {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        wchar_t customDir[MAX_PATH] = { 0 };
+        GetPrivateProfileStringW(L"Paths", L"Screenshots", L"", customDir, MAX_PATH, ini.c_str());
+        if (wcslen(customDir) > 0) {
+            CreateDirectoryW(customDir, NULL);
+            return std::wstring(customDir);
+        }
+        std::wstring localScreenshots = GetDsnapDirectory() + L"screenshots";
+        DWORD attr = GetFileAttributesW(localScreenshots.c_str());
+        if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+            return localScreenshots;
+        }
+    }
     PWSTR pPath = NULL;
     std::wstring outDir = L"";
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Screenshots, 0, NULL, &pPath))) {
@@ -85,6 +108,20 @@ std::wstring GetScreenshotsDir() {
 }
 
 std::wstring GetCapturesDir() {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        wchar_t customDir[MAX_PATH] = { 0 };
+        GetPrivateProfileStringW(L"Paths", L"Captures", L"", customDir, MAX_PATH, ini.c_str());
+        if (wcslen(customDir) > 0) {
+            CreateDirectoryW(customDir, NULL);
+            return std::wstring(customDir);
+        }
+        std::wstring localCaptures = GetDsnapDirectory() + L"captures";
+        DWORD attr = GetFileAttributesW(localCaptures.c_str());
+        if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+            return localCaptures;
+        }
+    }
     PWSTR pPath = NULL;
     std::wstring outDir = L"";
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Captures, 0, NULL, &pPath))) {
@@ -111,6 +148,39 @@ std::wstring GetDsnapDirectory() {
     wchar_t* lastSlash = wcsrchr(appDir, L'\\');
     if (lastSlash) *(lastSlash + 1) = L'\0';
     return std::wstring(appDir);
+}
+
+std::wstring GetIniFilePath() {
+    return GetDsnapDirectory() + L"dsnap.ini";
+}
+
+bool IsPortableMode() {
+    static int s_isPortable = -1;
+    if (s_isPortable != -1) return (s_isPortable == 1);
+
+    // 1. Check if dsnap.ini exists in the executable's directory
+    std::wstring iniPath = GetIniFilePath();
+    if (GetFileAttributesW(iniPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
+        s_isPortable = 1;
+        return true;
+    }
+
+    // 2. Check command-line argument for --portable or -p
+    int numArgs = 0;
+    LPWSTR* argList = CommandLineToArgvW(GetCommandLineW(), &numArgs);
+    if (argList) {
+        for (int i = 1; i < numArgs; ++i) {
+            if (_wcsicmp(argList[i], L"--portable") == 0 || _wcsicmp(argList[i], L"-p") == 0) {
+                s_isPortable = 1;
+                LocalFree(argList);
+                return true;
+            }
+        }
+        LocalFree(argList);
+    }
+
+    s_isPortable = 0;
+    return false;
 }
 
 std::wstring FindFFmpegPath() {
