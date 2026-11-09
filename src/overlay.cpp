@@ -1,6 +1,7 @@
 #include "overlay.h"
 #include "capture.h"
 #include "recorder.h"
+#include "i18n.h"
 
 bool g_isOverlayActive = false;
 HWND g_hWndOverlay = NULL;
@@ -161,8 +162,8 @@ LRESULT CALLBACK OverlayProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         // Draw HUD hint pill at top-center when idle (not dragging)
         if (!g_isDragging) {
             const wchar_t* hint = (g_currentMode == MODE_PHOTO)
-                ? L"📸 Drag to select screenshot area  •  Esc to cancel"
-                : L"🎥 Drag to select recording area  •  Esc to cancel";
+                ? Tr(StringId::OverlayGuidePhoto)
+                : Tr(StringId::OverlayGuideVideo);
 
             HFONT hHintFont = CreateFontW(14, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
                 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,

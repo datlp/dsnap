@@ -57,7 +57,7 @@ pushd res
 popd
 
 echo [INFO] Compiling modular sources into dsnap.exe with -O3 optimization...
-set "SRCS=src\main.cpp src\common.cpp src\config.cpp src\audio.cpp src\capture.cpp src\overlay.cpp src\recorder.cpp src\tray.cpp src\hotkey.cpp"
+set "SRCS=src\main.cpp src\common.cpp src\config.cpp src\audio.cpp src\capture.cpp src\overlay.cpp src\recorder.cpp src\tray.cpp src\hotkey.cpp src\i18n.cpp src\click_effect.cpp"
 "%CXX%" -O3 -std=c++17 -mwindows -Isrc -Ires %SRCS% res\dsnap.res -o dsnap.exe -lgdi32 -luser32 -lshell32 -ladvapi32 -lgdiplus -lole32 -loleaut32 -lstrmiids -lurlmon -static
 
 if %errorlevel% equ 0 (

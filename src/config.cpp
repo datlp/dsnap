@@ -5,6 +5,7 @@
 #include <atomic>
 
 bool g_recordAudio = false;
+bool g_highlightClicks = false;
 
 static std::atomic<bool> g_isDownloadingFFmpeg(false);
 
@@ -72,6 +73,70 @@ void SaveAudioSetting(bool enable) {
     }
 }
 
+bool LoadClickEffectSetting() {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        return GetPrivateProfileIntW(L"Settings", L"HighlightClicks", 0, ini.c_str()) != 0;
+    }
+    HKEY hKey;
+    DWORD val = 0;
+    DWORD size = sizeof(val);
+    DWORD type = REG_DWORD;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, L"HighlightClicks", NULL, &type, (LPBYTE)&val, &size) == ERROR_SUCCESS) {
+            RegCloseKey(hKey);
+            return (val != 0);
+        }
+        RegCloseKey(hKey);
+    }
+    return false;
+}
+
+void SaveClickEffectSetting(bool enable) {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        WritePrivateProfileStringW(L"Settings", L"HighlightClicks", enable ? L"1" : L"0", ini.c_str());
+        return;
+    }
+    HKEY hKey;
+    DWORD val = enable ? 1 : 0;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKey, L"HighlightClicks", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
+        RegCloseKey(hKey);
+    }
+}
+
+Language LoadLanguageSetting() {
+    wchar_t code[32] = { 0 };
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        GetPrivateProfileStringW(L"Settings", L"Language", L"Auto", code, 32, ini.c_str());
+    } else {
+        HKEY hKey;
+        DWORD size = sizeof(code);
+        DWORD type = REG_SZ;
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            RegQueryValueExW(hKey, L"Language", NULL, &type, (LPBYTE)code, &size);
+            RegCloseKey(hKey);
+        }
+    }
+    return ParseLanguageCode(code);
+}
+
+void SaveLanguageSetting(Language lang) {
+    std::wstring code = (lang == Language::Auto) ? L"Auto" : GetLanguageCode(lang);
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        WritePrivateProfileStringW(L"Settings", L"Language", code.c_str(), ini.c_str());
+        return;
+    }
+    HKEY hKey;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKey, L"Language", 0, REG_SZ, (const BYTE*)code.c_str(), (DWORD)((code.length() + 1) * sizeof(wchar_t)));
+        RegCloseKey(hKey);
+    }
+}
+
 std::wstring GetScreenshotsDir() {
     if (IsPortableMode()) {
         std::wstring ini = GetIniFilePath();
@@ -88,23 +153,18 @@ std::wstring GetScreenshotsDir() {
         }
     }
     PWSTR pPath = NULL;
-    std::wstring outDir = L"";
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Screenshots, 0, NULL, &pPath))) {
-        outDir = pPath;
+        std::wstring path(pPath);
         CoTaskMemFree(pPath);
-    } else if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &pPath))) {
-        outDir = std::wstring(pPath) + L"\\Screenshots";
-        CoTaskMemFree(pPath);
-    } else {
-        wchar_t userProfile[MAX_PATH];
-        if (GetEnvironmentVariableW(L"USERPROFILE", userProfile, MAX_PATH) > 0) {
-            outDir = std::wstring(userProfile) + L"\\Pictures\\Screenshots";
-        } else {
-            outDir = L".";
-        }
+        return path;
     }
-    CreateDirectoryW(outDir.c_str(), NULL);
-    return outDir;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, NULL, &pPath))) {
+        std::wstring path = std::wstring(pPath) + L"\\Screenshots";
+        CoTaskMemFree(pPath);
+        CreateDirectoryW(path.c_str(), NULL);
+        return path;
+    }
+    return L".";
 }
 
 std::wstring GetCapturesDir() {
@@ -123,79 +183,73 @@ std::wstring GetCapturesDir() {
         }
     }
     PWSTR pPath = NULL;
-    std::wstring outDir = L"";
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Captures, 0, NULL, &pPath))) {
-        outDir = pPath;
+        std::wstring path(pPath);
         CoTaskMemFree(pPath);
-    } else if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Videos, 0, NULL, &pPath))) {
-        outDir = std::wstring(pPath) + L"\\Captures";
-        CoTaskMemFree(pPath);
-    } else {
-        wchar_t userProfile[MAX_PATH];
-        if (GetEnvironmentVariableW(L"USERPROFILE", userProfile, MAX_PATH) > 0) {
-            outDir = std::wstring(userProfile) + L"\\Videos\\Captures";
-        } else {
-            outDir = L".";
-        }
+        return path;
     }
-    CreateDirectoryW(outDir.c_str(), NULL);
-    return outDir;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Videos, 0, NULL, &pPath))) {
+        std::wstring path = std::wstring(pPath) + L"\\Captures";
+        CoTaskMemFree(pPath);
+        CreateDirectoryW(path.c_str(), NULL);
+        return path;
+    }
+    return L".";
 }
 
 std::wstring GetDsnapDirectory() {
-    wchar_t appDir[MAX_PATH];
-    GetModuleFileNameW(NULL, appDir, MAX_PATH);
-    wchar_t* lastSlash = wcsrchr(appDir, L'\\');
-    if (lastSlash) *(lastSlash + 1) = L'\0';
-    return std::wstring(appDir);
-}
-
-std::wstring GetIniFilePath() {
-    return GetDsnapDirectory() + L"dsnap.ini";
+    wchar_t exePath[MAX_PATH];
+    GetModuleFileNameW(NULL, exePath, MAX_PATH);
+    std::wstring path(exePath);
+    size_t lastSlash = path.find_last_of(L"\\/");
+    if (lastSlash != std::wstring::npos) {
+        return path.substr(0, lastSlash + 1);
+    }
+    return L".\\";
 }
 
 bool IsPortableMode() {
     static int s_isPortable = -1;
     if (s_isPortable != -1) return (s_isPortable == 1);
 
-    // 1. Check if dsnap.ini exists in the executable's directory
-    std::wstring iniPath = GetIniFilePath();
-    if (GetFileAttributesW(iniPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        s_isPortable = 1;
-        return true;
-    }
-
-    // 2. Check command-line argument for --portable or -p
-    int numArgs = 0;
-    LPWSTR* argList = CommandLineToArgvW(GetCommandLineW(), &numArgs);
-    if (argList) {
-        for (int i = 1; i < numArgs; ++i) {
-            if (_wcsicmp(argList[i], L"--portable") == 0 || _wcsicmp(argList[i], L"-p") == 0) {
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv) {
+        for (int i = 1; i < argc; ++i) {
+            if (_wcsicmp(argv[i], L"--portable") == 0 || _wcsicmp(argv[i], L"-p") == 0) {
+                LocalFree(argv);
                 s_isPortable = 1;
-                LocalFree(argList);
                 return true;
             }
         }
-        LocalFree(argList);
+        LocalFree(argv);
+    }
+
+    std::wstring iniPath = GetDsnapDirectory() + L"dsnap.ini";
+    DWORD attr = GetFileAttributesW(iniPath.c_str());
+    if (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        s_isPortable = 1;
+        return true;
     }
 
     s_isPortable = 0;
     return false;
 }
 
+std::wstring GetIniFilePath() {
+    return GetDsnapDirectory() + L"dsnap.ini";
+}
+
 std::wstring FindFFmpegPath() {
-    std::wstring appDir = GetDsnapDirectory();
-    std::wstring localFFmpeg = appDir + L"ffmpeg.exe";
-    if (GetFileAttributesW(localFFmpeg.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        return localFFmpeg;
+    std::wstring localPath = GetDsnapDirectory() + L"ffmpeg.exe";
+    if (GetFileAttributesW(localPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
+        return localPath;
     }
-
-    wchar_t pathBuf[MAX_PATH];
-    DWORD res = SearchPathW(NULL, L"ffmpeg.exe", NULL, MAX_PATH, pathBuf, NULL);
+    wchar_t sysPath[MAX_PATH];
+    DWORD res = SearchPathW(NULL, L"ffmpeg.exe", NULL, MAX_PATH, sysPath, NULL);
     if (res > 0 && res < MAX_PATH) {
-        return std::wstring(pathBuf);
+        return std::wstring(sysPath);
     }
-
     return L"";
 }
 
@@ -216,7 +270,7 @@ static void DownloadFFmpegWorker() {
     NOTIFYICONDATAW nid = g_nid;
     nid.uFlags = NIF_INFO;
     wcscpy_s(nid.szInfoTitle, L"dsnap - Downloading FFmpeg");
-    wcscpy_s(nid.szInfo, L"Downloading FFmpeg core for screen recording (~84 MB)...\nPlease wait a moment.");
+    wcscpy_s(nid.szInfo, L"Downloading FFmpeg core for screen recording (~28 MB)...\nPlease wait a moment.");
     nid.dwInfoFlags = NIIF_INFO;
     Shell_NotifyIconW(NIM_MODIFY, &nid);
 
@@ -240,7 +294,7 @@ static void DownloadFFmpegWorker() {
             wcscpy_s(nid.szInfo, L"FFmpeg installed successfully!\nYou can now record your screen (Shift + PrtScn).");
             nid.dwInfoFlags = NIIF_INFO;
             Shell_NotifyIconW(NIM_MODIFY, &nid);
-            UpdateTrayTip(TRAY_TIP_DEFAULT);
+            UpdateTrayTip(Tr(StringId::TrayTipDefault));
             g_isDownloadingFFmpeg = false;
             return;
         }
@@ -251,7 +305,7 @@ static void DownloadFFmpegWorker() {
     wcscpy_s(nid.szInfo, L"Could not download FFmpeg automatically. Please check your internet connection.");
     nid.dwInfoFlags = NIIF_WARNING;
     Shell_NotifyIconW(NIM_MODIFY, &nid);
-    UpdateTrayTip(TRAY_TIP_DEFAULT);
+    UpdateTrayTip(Tr(StringId::TrayTipDefault));
     g_isDownloadingFFmpeg = false;
 }
 
@@ -268,10 +322,8 @@ bool EnsureFFmpegAvailable(HWND hWndParent) {
     }
 
     int res = MessageBoxW(hWndParent,
-        L"Screen recording requires FFmpeg, which was not found on your system.\n\n"
-        L"Would you like dsnap to download and install it automatically?\n"
-        L"(One-time setup from GitHub Release CDN ~84 MB)",
-        L"dsnap - FFmpeg Setup",
+        Tr(StringId::FFmpegPromptBody),
+        Tr(StringId::FFmpegPromptTitle),
         MB_YESNO | MB_ICONQUESTION | MB_TOPMOST);
 
     if (res == IDYES) {

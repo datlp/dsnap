@@ -1,13 +1,21 @@
 #pragma once
 #include "common.h"
+#include "i18n.h"
 
 extern bool g_recordAudio;
+extern bool g_highlightClicks;
 
 bool IsAutoStartEnabled();
 void SetAutoStart(bool enable);
 
 bool LoadAudioSetting();
 void SaveAudioSetting(bool enable);
+
+bool LoadClickEffectSetting();
+void SaveClickEffectSetting(bool enable);
+
+Language LoadLanguageSetting();
+void SaveLanguageSetting(Language lang);
 
 std::wstring GetScreenshotsDir();
 std::wstring GetCapturesDir();

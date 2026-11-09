@@ -5,6 +5,8 @@
 #include "overlay.h"
 #include "recorder.h"
 #include "capture.h"
+#include "click_effect.h"
+#include "i18n.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     // 0. Strict Single-Instance Lifecycle Check
@@ -38,6 +40,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     ULONG_PTR gdiplusToken;
     Gdiplus::GdiplusStartupInput gdiplusStartupInput;
     Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+    // Initialize Localization and Click Effect overlay
+    InitLanguage();
+    InitClickEffect(hInstance);
 
     // 5. Register Window Classes
     WNDCLASSW overlayWc = { 0 };
@@ -91,6 +97,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     }
 
     // 8. Clean up system resources
+    ShutdownClickEffect();
     if (g_hKeyboardHook) {
         UnhookWindowsHookEx(g_hKeyboardHook);
         g_hKeyboardHook = NULL;
