@@ -6,7 +6,9 @@
 
 > **A featherweight (< 450 KB), zero-dependency native Windows region screenshot & screen recording utility powered by Win32 API, GDI+, WASAPI Loopback, and FFmpeg.**
 
-[⬇️ **Download Latest Release (dsnap.exe)**](https://github.com/datlp/dsnap/releases/latest/download/dsnap.exe) • [📦 **Download ZIP Archive**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.1-windows-x64.zip)
+[⬇️ **Installer (setup.exe)**](https://github.com/datlp/dsnap/releases/latest) • [⚡ **Portable (dsnap.exe)**](https://github.com/datlp/dsnap/releases/latest/download/dsnap.exe) • [📦 **All releases**](https://github.com/datlp/dsnap/releases)
+
+Release assets follow the `dsnap-v<version>-<variant>.<ext>` pattern: `-setup.exe` (installer, All Users or Current User), `-windows-x64.exe` / `-windows-x64.zip` (portable) and `SHA256SUMS.txt`.
 
 ---
 
@@ -81,7 +83,10 @@ Right-click the `dsnap` icon in the system tray to access options:
 - **FFmpeg**: If not already present in PATH or folder, dsnap will prompt to automatically install it on first recording.
 
 ### Running
-Simply run `dsnap.exe`. It will minimize to the Windows System Tray (notification area) and listen for global capture hotkeys.
+Run the installer (choose *All users* or *Current user*), or simply run the portable `dsnap.exe`. It minimizes to the system tray and listens for global capture hotkeys.
+
+### Portable mode
+Place an empty `dsnap.ini` next to `dsnap.exe` (or start with `--portable`) and dsnap stores its settings in that file instead of the Registry. Optional `[Paths]` keys `Screenshots` and `Captures`, or local `screenshots\` / `captures\` folders, redirect output next to the app.
 
 ---
 
