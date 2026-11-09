@@ -28,10 +28,12 @@ using namespace Gdiplus;
 #define IDI_APPICON           101
 #define WM_TRAYICON           (WM_USER + 1)
 #define WM_DSNAP_TRIGGER      (WM_USER + 100)
-#define IDM_AUTOSTART         1001
-#define IDM_EXIT              1002
+#define IDM_CAPTURE_PHOTO     1001
+#define IDM_RECORD_VIDEO      1002
 #define IDM_OPEN_SCREENSHOTS  1003
 #define IDM_OPEN_CAPTURES     1004
+#define IDM_AUTOSTART         1005
+#define IDM_EXIT              1006
 
 #define TRIGGER_PHOTO         1
 #define TRIGGER_VIDEO         2
@@ -79,6 +81,14 @@ HWND g_hWndOverlay = NULL;
 bool g_isDragging = false;
 POINT g_ptStartScreen = { 0, 0 };
 RECT g_selectedRectScreen = { 0, 0, 0, 0 };
+
+// Freeze Snapshot Bitmaps
+HBITMAP g_hFrozenBitmap = NULL;
+HBITMAP g_hDimmedBitmap = NULL;
+int g_virtualX = 0;
+int g_virtualY = 0;
+int g_virtualW = 0;
+int g_virtualH = 0;
 
 // Exclude window from screen capture (invisible in recording)
 void ExcludeFromCapture(HWND hWnd) {
@@ -246,44 +256,107 @@ std::wstring FindFFmpegPath() {
     return L"";
 }
 
-// Save Screenshot (Silent mode, no beep)
-void SaveScreenshot(int x, int y, int w, int h) {
-    if (w <= 0 || h <= 0) return;
+// Forward declarations
+void StopRecording(bool cancel);
+void TogglePauseRecording();
+
+// Save Screenshot from Frozen Desktop Bitmap
+void SaveScreenshotFromFrozen(int selX, int selY, int w, int h) {
+    if (w <= 0 || h <= 0 || !g_hFrozenBitmap) return;
 
     HDC hScreenDC = GetDC(NULL);
-    HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
-    HBITMAP hBitmap = CreateCompatibleBitmap(hScreenDC, w, h);
-    HGDIOBJ hOldBitmap = SelectObject(hMemoryDC, hBitmap);
-    BitBlt(hMemoryDC, 0, 0, w, h, hScreenDC, x, y, SRCCOPY);
+    HDC hFrozenDC = CreateCompatibleDC(hScreenDC);
+    HDC hCropDC = CreateCompatibleDC(hScreenDC);
+
+    HBITMAP hCropBitmap = CreateCompatibleBitmap(hScreenDC, w, h);
+    HGDIOBJ oldFrozen = SelectObject(hFrozenDC, g_hFrozenBitmap);
+    HGDIOBJ oldCrop = SelectObject(hCropDC, hCropBitmap);
+
+    // Map screen coordinate to virtual screen relative coordinates
+    int relX = selX - g_virtualX;
+    int relY = selY - g_virtualY;
+
+    BitBlt(hCropDC, 0, 0, w, h, hFrozenDC, relX, relY, SRCCOPY);
 
     // Save PNG using GDI+
     std::wstring outDir = GetScreenshotsDir();
     std::wstring filePath = outDir + L"\\dsnap-screenshot-" + GetTimestampW() + L".png";
 
-    Bitmap* gdiBitmap = new Bitmap(hBitmap, NULL);
+    Bitmap* gdiBitmap = new Bitmap(hCropBitmap, NULL);
     CLSID pngClsid;
     if (GetEncoderClsid(L"image/png", &pngClsid) != -1) {
         gdiBitmap->Save(filePath.c_str(), &pngClsid, NULL);
     }
     delete gdiBitmap;
 
-    // Copy to Clipboard (System takes ownership of hBitmap upon success)
+    // Copy to Clipboard (System takes ownership of hCropBitmap)
     if (OpenClipboard(NULL)) {
         EmptyClipboard();
-        SetClipboardData(CF_BITMAP, hBitmap);
+        SetClipboardData(CF_BITMAP, hCropBitmap);
         CloseClipboard();
     } else {
-        DeleteObject(hBitmap);
+        DeleteObject(hCropBitmap);
     }
 
-    SelectObject(hMemoryDC, hOldBitmap);
-    DeleteDC(hMemoryDC);
+    SelectObject(hCropDC, oldCrop);
+    SelectObject(hFrozenDC, oldFrozen);
+    DeleteDC(hCropDC);
+    DeleteDC(hFrozenDC);
     ReleaseDC(NULL, hScreenDC);
 }
 
-// Forward declarations
-void StopRecording(bool cancel);
-void TogglePauseRecording();
+// Clean up frozen snapshot bitmaps
+void CleanupFrozenBitmaps() {
+    if (g_hFrozenBitmap) {
+        DeleteObject(g_hFrozenBitmap);
+        g_hFrozenBitmap = NULL;
+    }
+    if (g_hDimmedBitmap) {
+        DeleteObject(g_hDimmedBitmap);
+        g_hDimmedBitmap = NULL;
+    }
+}
+
+// Capture and Freeze Desktop into RAM
+void CreateFrozenDesktopSnapshot() {
+    CleanupFrozenBitmaps();
+
+    g_virtualX = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    g_virtualY = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    g_virtualW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    g_virtualH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+    HDC hScreenDC = GetDC(NULL);
+    HDC hMemDC = CreateCompatibleDC(hScreenDC);
+    g_hFrozenBitmap = CreateCompatibleBitmap(hScreenDC, g_virtualW, g_virtualH);
+    HGDIOBJ oldBmp = SelectObject(hMemDC, g_hFrozenBitmap);
+
+    // Capture entire virtual desktop (all monitors, context menus, tooltips, flyouts)
+    BitBlt(hMemDC, 0, 0, g_virtualW, g_virtualH, hScreenDC, g_virtualX, g_virtualY, SRCCOPY);
+
+    // Create Dimmed Version using GDI+ for smooth dark backdrop
+    Bitmap* bmp = Bitmap::FromHBITMAP(g_hFrozenBitmap, NULL);
+    if (bmp) {
+        Bitmap* dimmedBmp = new Bitmap(g_virtualW, g_virtualH, PixelFormat32bppARGB);
+        Graphics g(dimmedBmp);
+        g.DrawImage(bmp, 0, 0, g_virtualW, g_virtualH);
+
+        SolidBrush darkBrush(Color(100, 0, 0, 0)); // 39% dark overlay
+        g.FillRectangle(&darkBrush, 0, 0, g_virtualW, g_virtualH);
+
+        dimmedBmp->GetHBITMAP(Color(0, 0, 0), &g_hDimmedBitmap);
+        delete dimmedBmp;
+        delete bmp;
+    }
+
+    SelectObject(hMemDC, oldBmp);
+    DeleteDC(hMemDC);
+    ReleaseDC(NULL, hScreenDC);
+
+    // Release mouse capture and close any blocking context menus from other apps
+    ReleaseCapture();
+    EndMenu();
+}
 
 // Recording Border Window Procedure (Transparent interior, click-through)
 LRESULT CALLBACK RecordingBorderProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -294,12 +367,10 @@ LRESULT CALLBACK RecordingBorderProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
         RECT rc;
         GetClientRect(hWnd, &rc);
 
-        // Fill background with magenta (transparent key)
         HBRUSH hTransBrush = CreateSolidBrush(RGB(255, 0, 255));
         FillRect(hdc, &rc, hTransBrush);
         DeleteObject(hTransBrush);
 
-        // Draw 3px outline (Red when recording, Yellow when paused)
         COLORREF borderColor = g_isPaused ? RGB(234, 179, 8) : RGB(239, 68, 68);
         HPEN hPen = CreatePen(PS_SOLID, 3, borderColor);
         HGDIOBJ oldPen = SelectObject(hdc, hPen);
@@ -321,7 +392,7 @@ LRESULT CALLBACK RecordingBorderProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 }
 
 // Recording Floating Toolbar Procedure
-static int g_hoverButton = 0; // 1: Pause/Resume, 2: Stop, 3: Cancel
+static int g_hoverButton = 0;
 
 LRESULT CALLBACK RecordingToolbarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -365,9 +436,9 @@ LRESULT CALLBACK RecordingToolbarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
         if (x >= 75 && x < 118) {
             TogglePauseRecording();
         } else if (x >= 122 && x < 165) {
-            StopRecording(false); // Lưu file
+            StopRecording(false);
         } else if (x >= 169 && x < 205) {
-            StopRecording(true);  // Hủy file
+            StopRecording(true);
         }
         return 0;
     }
@@ -377,9 +448,8 @@ LRESULT CALLBACK RecordingToolbarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
         RECT rc;
         GetClientRect(hWnd, &rc);
 
-        // Dark background pill
-        HBRUSH bgBrush = CreateSolidBrush(RGB(15, 23, 42)); // Slate-900
-        HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(51, 65, 85)); // Slate-700
+        HBRUSH bgBrush = CreateSolidBrush(RGB(15, 23, 42));
+        HPEN borderPen = CreatePen(PS_SOLID, 1, RGB(51, 65, 85));
         HGDIOBJ oldBrush = SelectObject(hdc, bgBrush);
         HGDIOBJ oldPen = SelectObject(hdc, borderPen);
         RoundRect(hdc, rc.left, rc.top, rc.right, rc.bottom, 12, 12);
@@ -390,7 +460,7 @@ LRESULT CALLBACK RecordingToolbarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
         SetBkMode(hdc, TRANSPARENT);
 
-        // 1. Recording Dot & Time (Left section: 0 to 74)
+        // Dot & Time
         COLORREF dotCol = g_isPaused ? RGB(234, 179, 8) : RGB(239, 68, 68);
         HBRUSH dotBrush = CreateSolidBrush(dotCol);
         HGDIOBJ oB = SelectObject(hdc, dotBrush);
@@ -411,7 +481,7 @@ LRESULT CALLBACK RecordingToolbarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
         RECT rcTime = { 28, 6, 72, 26 };
         DrawTextW(hdc, timeBuf, -1, &rcTime, DT_SINGLELINE | DT_VCENTER);
 
-        // 2. Button 1: Pause / Resume (75 to 118)
+        // Pause/Resume Button
         RECT rcBtn1 = { 75, 4, 118, 28 };
         if (g_hoverButton == 1) {
             HBRUSH hHov = CreateSolidBrush(RGB(51, 65, 85));
@@ -421,24 +491,24 @@ LRESULT CALLBACK RecordingToolbarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
         SetTextColor(hdc, g_isPaused ? RGB(234, 179, 8) : RGB(226, 232, 240));
         DrawTextW(hdc, g_isPaused ? L"▶" : L"⏸", -1, &rcBtn1, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-        // 3. Button 2: Stop & Save (122 to 165)
+        // Stop & Save Button
         RECT rcBtn2 = { 122, 4, 165, 28 };
         if (g_hoverButton == 2) {
             HBRUSH hHov = CreateSolidBrush(RGB(51, 65, 85));
             FillRect(hdc, &rcBtn2, hHov);
             DeleteObject(hHov);
         }
-        SetTextColor(hdc, RGB(56, 189, 248)); // Cyan
+        SetTextColor(hdc, RGB(56, 189, 248));
         DrawTextW(hdc, L"⏹", -1, &rcBtn2, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
-        // 4. Button 3: Cancel (169 to 205)
+        // Cancel Button
         RECT rcBtn3 = { 169, 4, 205, 28 };
         if (g_hoverButton == 3) {
-            HBRUSH hHov = CreateSolidBrush(RGB(153, 27, 27)); // Dark red
+            HBRUSH hHov = CreateSolidBrush(RGB(153, 27, 27));
             FillRect(hdc, &rcBtn3, hHov);
             DeleteObject(hHov);
         }
-        SetTextColor(hdc, RGB(248, 113, 113)); // Light red
+        SetTextColor(hdc, RGB(248, 113, 113));
         DrawTextW(hdc, L"✕", -1, &rcBtn3, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
         SelectObject(hdc, oldFont);
@@ -513,7 +583,7 @@ void StartRecording(int x, int y, int w, int h) {
 
         UpdateTrayTip(L"dsnap (Đang quay video - Nhấn Shift+PrtScn để lưu)");
 
-        // 1. Tạo Khung viền vùng quay (Nằm ngoài đúng 3px, xuyên thấu click chuột và tàng hình trước FFmpeg)
+        // 1. Tạo Khung viền vùng quay
         g_hWndRecordingBorder = CreateWindowExW(
             WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TRANSPARENT,
             BORDER_CLASS, L"", WS_POPUP,
@@ -535,7 +605,7 @@ void StartRecording(int x, int y, int w, int h) {
         int virtualY = GetSystemMetrics(SM_YVIRTUALSCREEN);
         int virtualW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 
-        if (tbY < virtualY) tbY = y + 6; // Nếu sát mép trên cùng thì đưa vào trong mép trên
+        if (tbY < virtualY) tbY = y + 6;
         if (tbX + tbW > virtualX + virtualW) tbX = virtualX + virtualW - tbW - 4;
         if (tbX < virtualX) tbX = virtualX + 4;
 
@@ -574,17 +644,15 @@ void TogglePauseRecording() {
     if (g_hWndRecordingToolbar) InvalidateRect(g_hWndRecordingToolbar, NULL, TRUE);
 }
 
-// Stop Recording Gracefully or Cancel and delete
+// Stop Recording
 void StopRecording(bool cancel) {
     if (g_isRecording) {
-        // Resume if paused so FFmpeg can handle termination signal
         if (g_isPaused && pfnNtResumeProcess && g_ffmpegPi.hProcess) {
             pfnNtResumeProcess(g_ffmpegPi.hProcess);
             g_isPaused = false;
         }
 
         if (cancel) {
-            // Cancel recording: kill immediately and delete partial file
             if (g_ffmpegPi.hProcess) {
                 TerminateProcess(g_ffmpegPi.hProcess, 0);
                 WaitForSingleObject(g_ffmpegPi.hProcess, 1000);
@@ -599,7 +667,6 @@ void StopRecording(bool cancel) {
                 DeleteFileW(g_currentRecordingPath.c_str());
             }
         } else {
-            // Graceful stop: send 'q' to finalize MP4 container
             if (g_hFFmpegStdinWrite != NULL) {
                 DWORD bytesWritten;
                 const char* q = "q\n";
@@ -621,7 +688,6 @@ void StopRecording(bool cancel) {
         g_isPaused = false;
         g_currentRecordingPath = L"";
 
-        // Clean up UI handles
         if (g_hWndRecordingToolbar) {
             DestroyWindow(g_hWndRecordingToolbar);
             g_hWndRecordingToolbar = NULL;
@@ -635,11 +701,12 @@ void StopRecording(bool cancel) {
     }
 }
 
-// Overlay Window Proc
+// Overlay Window Proc (Supports both Freeze Snapshot for Photo and Live Layer for Video)
 LRESULT CALLBACK OverlayProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_LBUTTONDOWN: {
         g_isDragging = true;
+        SetCapture(hWnd);
         GetCursorPos(&g_ptStartScreen);
         g_selectedRectScreen = { g_ptStartScreen.x, g_ptStartScreen.y, g_ptStartScreen.x, g_ptStartScreen.y };
         return 0;
@@ -652,91 +719,157 @@ LRESULT CALLBACK OverlayProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             g_selectedRectScreen.top    = (std::min)(g_ptStartScreen.y, ptCur.y);
             g_selectedRectScreen.right  = (std::max)(g_ptStartScreen.x, ptCur.x);
             g_selectedRectScreen.bottom = (std::max)(g_ptStartScreen.y, ptCur.y);
-            InvalidateRect(hWnd, NULL, TRUE);
+            InvalidateRect(hWnd, NULL, FALSE);
         }
         return 0;
     }
     case WM_LBUTTONUP: {
         if (g_isDragging) {
             g_isDragging = false;
+            ReleaseCapture();
+
             int x = g_selectedRectScreen.left;
             int y = g_selectedRectScreen.top;
             int w = g_selectedRectScreen.right - g_selectedRectScreen.left;
             int h = g_selectedRectScreen.bottom - g_selectedRectScreen.top;
             Mode m = g_currentMode;
 
-            // Đóng overlay ngay lập tức trước khi chụp/quay
+            // Đóng overlay ngay lập tức
             DestroyWindow(hWnd);
 
             if (w > 10 && h > 10) {
                 if (m == MODE_PHOTO) {
-                    SaveScreenshot(x, y, w, h);
+                    SaveScreenshotFromFrozen(x, y, w, h);
                 } else if (m == MODE_VIDEO) {
                     StartRecording(x, y, w, h);
                 }
             }
+            CleanupFrozenBitmaps();
         }
         return 0;
     }
     case WM_KEYDOWN: {
         if (wParam == VK_ESCAPE) {
             g_isDragging = false;
+            ReleaseCapture();
             DestroyWindow(hWnd);
+            CleanupFrozenBitmaps();
         }
         return 0;
     }
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
-        if (g_isDragging) {
-            COLORREF borderColor = (g_currentMode == MODE_PHOTO) ? RGB(0, 162, 232) : RGB(255, 50, 50);
-            HPEN hPen = CreatePen(PS_SOLID, 2, borderColor);
-            HGDIOBJ oldPen = SelectObject(hdc, hPen);
-            HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+        RECT rcClient;
+        GetClientRect(hWnd, &rcClient);
+        int clientW = rcClient.right - rcClient.left;
+        int clientH = rcClient.bottom - rcClient.top;
 
-            // Chuyển tọa độ màn hình sang tọa độ client của Overlay
-            POINT p1 = { g_selectedRectScreen.left, g_selectedRectScreen.top };
-            POINT p2 = { g_selectedRectScreen.right, g_selectedRectScreen.bottom };
-            ScreenToClient(hWnd, &p1);
-            ScreenToClient(hWnd, &p2);
+        // Double-buffering to eliminate any dragging flicker
+        HDC hMemDC = CreateCompatibleDC(hdc);
+        HBITMAP hMemBmp = CreateCompatibleBitmap(hdc, clientW, clientH);
+        HGDIOBJ oldMemBmp = SelectObject(hMemDC, hMemBmp);
 
-            Rectangle(hdc, p1.x, p1.y, p2.x, p2.y);
+        if (g_currentMode == MODE_PHOTO && g_hDimmedBitmap && g_hFrozenBitmap) {
+            HDC hDimmedDC = CreateCompatibleDC(hdc);
+            HDC hFrozenDC = CreateCompatibleDC(hdc);
+            HGDIOBJ oldDimmed = SelectObject(hDimmedDC, g_hDimmedBitmap);
+            HGDIOBJ oldFrozen = SelectObject(hFrozenDC, g_hFrozenBitmap);
 
-            SelectObject(hdc, oldPen);
-            SelectObject(hdc, oldBrush);
-            DeleteObject(hPen);
+            // 1. Draw dimmed backdrop
+            BitBlt(hMemDC, 0, 0, clientW, clientH, hDimmedDC, 0, 0, SRCCOPY);
 
-            // Dimension Badge [W x H]
-            int selW = abs(p2.x - p1.x);
-            int selH = abs(p2.y - p1.y);
-            wchar_t dimBuf[32];
-            swprintf_s(dimBuf, L"%d × %d", selW, selH);
+            // 2. If dragging, illuminate the selected box with the bright original pixels
+            if (g_isDragging) {
+                POINT p1 = { g_selectedRectScreen.left, g_selectedRectScreen.top };
+                POINT p2 = { g_selectedRectScreen.right, g_selectedRectScreen.bottom };
+                ScreenToClient(hWnd, &p1);
+                ScreenToClient(hWnd, &p2);
 
-            SetBkMode(hdc, TRANSPARENT);
-            SetTextColor(hdc, RGB(255, 255, 255));
-            HFONT hBadgeFont = CreateFontW(12, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
-                DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-                VARIABLE_PITCH, L"Segoe UI");
-            HGDIOBJ oldFont = SelectObject(hdc, hBadgeFont);
+                int selW = p2.x - p1.x;
+                int selH = p2.y - p1.y;
 
-            SIZE textSize;
-            GetTextExtentPoint32W(hdc, dimBuf, (int)wcslen(dimBuf), &textSize);
+                if (selW > 0 && selH > 0) {
+                    BitBlt(hMemDC, p1.x, p1.y, selW, selH, hFrozenDC, p1.x, p1.y, SRCCOPY);
 
-            int badgeX = p2.x + 8;
-            int badgeY = p2.y + 8;
-            RECT rcBadgeBg = { badgeX - 4, badgeY - 2, badgeX + textSize.cx + 4, badgeY + textSize.cy + 2 };
-            HBRUSH hBadgeBg = CreateSolidBrush(RGB(15, 23, 42));
-            FillRect(hdc, &rcBadgeBg, hBadgeBg);
-            DeleteObject(hBadgeBg);
+                    // 2px Cyan outline
+                    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(0, 162, 232));
+                    HGDIOBJ oldPen = SelectObject(hMemDC, hPen);
+                    HGDIOBJ oldBrush = SelectObject(hMemDC, GetStockObject(NULL_BRUSH));
+                    Rectangle(hMemDC, p1.x, p1.y, p2.x, p2.y);
+                    SelectObject(hMemDC, oldPen);
+                    SelectObject(hMemDC, oldBrush);
+                    DeleteObject(hPen);
 
-            TextOutW(hdc, badgeX, badgeY, dimBuf, (int)wcslen(dimBuf));
+                    // Dimension badge [W x H]
+                    wchar_t dimBuf[32];
+                    swprintf_s(dimBuf, L"%d × %d", selW, selH);
 
-            SelectObject(hdc, oldFont);
-            DeleteObject(hBadgeFont);
+                    SetBkMode(hMemDC, TRANSPARENT);
+                    SetTextColor(hMemDC, RGB(255, 255, 255));
+                    HFONT hBadgeFont = CreateFontW(12, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+                        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                        VARIABLE_PITCH, L"Segoe UI");
+                    HGDIOBJ oldFont = SelectObject(hMemDC, hBadgeFont);
+
+                    SIZE textSize;
+                    GetTextExtentPoint32W(hMemDC, dimBuf, (int)wcslen(dimBuf), &textSize);
+
+                    int badgeX = p2.x + 8;
+                    int badgeY = p2.y + 8;
+                    if (badgeX + textSize.cx + 10 > clientW) badgeX = p1.x - textSize.cx - 8;
+                    if (badgeY + textSize.cy + 10 > clientH) badgeY = p1.y - textSize.cy - 8;
+
+                    RECT rcBadgeBg = { badgeX - 4, badgeY - 2, badgeX + textSize.cx + 4, badgeY + textSize.cy + 2 };
+                    HBRUSH hBadgeBg = CreateSolidBrush(RGB(15, 23, 42));
+                    FillRect(hMemDC, &rcBadgeBg, hBadgeBg);
+                    DeleteObject(hBadgeBg);
+
+                    TextOutW(hMemDC, badgeX, badgeY, dimBuf, (int)wcslen(dimBuf));
+
+                    SelectObject(hMemDC, oldFont);
+                    DeleteObject(hBadgeFont);
+                }
+            }
+
+            SelectObject(hDimmedDC, oldDimmed);
+            SelectObject(hFrozenDC, oldFrozen);
+            DeleteDC(hDimmedDC);
+            DeleteDC(hFrozenDC);
+        } else {
+            // Video Mode: semi-transparent live layer
+            HBRUSH hBlackBrush = CreateSolidBrush(RGB(0, 0, 0));
+            FillRect(hMemDC, &rcClient, hBlackBrush);
+            DeleteObject(hBlackBrush);
+
+            if (g_isDragging) {
+                POINT p1 = { g_selectedRectScreen.left, g_selectedRectScreen.top };
+                POINT p2 = { g_selectedRectScreen.right, g_selectedRectScreen.bottom };
+                ScreenToClient(hWnd, &p1);
+                ScreenToClient(hWnd, &p2);
+
+                HPEN hPen = CreatePen(PS_SOLID, 2, RGB(239, 68, 68));
+                HGDIOBJ oldPen = SelectObject(hMemDC, hPen);
+                HGDIOBJ oldBrush = SelectObject(hMemDC, GetStockObject(NULL_BRUSH));
+                Rectangle(hMemDC, p1.x, p1.y, p2.x, p2.y);
+                SelectObject(hMemDC, oldPen);
+                SelectObject(hMemDC, oldBrush);
+                DeleteObject(hPen);
+            }
         }
+
+        // Blit backbuffer to screen
+        BitBlt(hdc, 0, 0, clientW, clientH, hMemDC, 0, 0, SRCCOPY);
+
+        SelectObject(hMemDC, oldMemBmp);
+        DeleteObject(hMemBmp);
+        DeleteDC(hMemDC);
+
         EndPaint(hWnd, &ps);
         return 0;
     }
+    case WM_ERASEBKGND:
+        return 1;
     case WM_DESTROY: {
         g_hWndOverlay = NULL;
         g_isOverlayActive = false;
@@ -753,31 +886,47 @@ void TriggerOverlay(Mode mode) {
         return;
     }
 
-    EndMenu();
-
     g_currentMode = mode;
     g_isOverlayActive = true;
     g_isDragging = false;
 
-    int virtualX = GetSystemMetrics(SM_XVIRTUALSCREEN);
-    int virtualY = GetSystemMetrics(SM_YVIRTUALSCREEN);
-    int virtualW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-    int virtualH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    if (mode == MODE_PHOTO) {
+        // 1. Chụp ngay lập tức toàn bộ màn hình vào RAM (đóng băng menu chuột phải, tooltips)
+        CreateFrozenDesktopSnapshot();
 
-    g_hWndOverlay = CreateWindowExW(
-        WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW,
-        OVERLAY_CLASS, L"", WS_POPUP,
-        virtualX, virtualY, virtualW, virtualH,
-        NULL, NULL, g_hInstance, NULL
-    );
+        // 2. Tạo cửa sổ fullscreen hiển thị ảnh đã đóng băng
+        g_hWndOverlay = CreateWindowExW(
+            WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+            OVERLAY_CLASS, L"", WS_POPUP,
+            g_virtualX, g_virtualY, g_virtualW, g_virtualH,
+            NULL, NULL, g_hInstance, NULL
+        );
+    } else {
+        // Chế độ video: cửa sổ live bán trong suốt
+        EndMenu();
+        int virtualX = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int virtualY = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        int virtualW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int virtualH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+        g_hWndOverlay = CreateWindowExW(
+            WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW,
+            OVERLAY_CLASS, L"", WS_POPUP,
+            virtualX, virtualY, virtualW, virtualH,
+            NULL, NULL, g_hInstance, NULL
+        );
+        if (g_hWndOverlay) {
+            SetLayeredWindowAttributes(g_hWndOverlay, 0, 60, LWA_ALPHA);
+        }
+    }
 
     if (g_hWndOverlay) {
-        SetLayeredWindowAttributes(g_hWndOverlay, 0, 60, LWA_ALPHA);
         ShowWindow(g_hWndOverlay, SW_SHOW);
         SetForegroundWindow(g_hWndOverlay);
         UpdateWindow(g_hWndOverlay);
     } else {
         g_isOverlayActive = false;
+        CleanupFrozenBitmaps();
     }
 }
 
@@ -787,6 +936,9 @@ void ShowContextMenu(HWND hWnd) {
     GetCursorPos(&pt);
     HMENU hMenu = CreatePopupMenu();
 
+    AppendMenuW(hMenu, MF_STRING, IDM_CAPTURE_PHOTO, L"📸 Chụp ảnh màn hình (PrintScreen)");
+    AppendMenuW(hMenu, MF_STRING, IDM_RECORD_VIDEO, L"🎥 Quay video màn hình (Shift + PrtScn)");
+    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
     AppendMenuW(hMenu, MF_STRING, IDM_OPEN_SCREENSHOTS, L"📁 Mở thư mục Ảnh chụp");
     AppendMenuW(hMenu, MF_STRING, IDM_OPEN_CAPTURES, L"📁 Mở thư mục Video quay");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
@@ -824,6 +976,12 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     case WM_COMMAND: {
         switch (LOWORD(wParam)) {
+        case IDM_CAPTURE_PHOTO:
+            PostMessageW(hWnd, WM_DSNAP_TRIGGER, TRIGGER_PHOTO, 0);
+            break;
+        case IDM_RECORD_VIDEO:
+            PostMessageW(hWnd, WM_DSNAP_TRIGGER, TRIGGER_VIDEO, 0);
+            break;
         case IDM_OPEN_SCREENSHOTS:
             ShellExecuteW(NULL, L"open", GetScreenshotsDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
             break;
@@ -856,6 +1014,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         if (g_isOverlayActive && g_hWndOverlay) {
             DestroyWindow(g_hWndOverlay);
         }
+        CleanupFrozenBitmaps();
         Shell_NotifyIconW(NIM_DELETE, &g_nid);
         PostQuitMessage(0);
         return 0;
@@ -870,7 +1029,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         KBDLLHOOKSTRUCT* pKey = (KBDLLHOOKSTRUCT*)lParam;
         if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
             if (pKey->vkCode == VK_SNAPSHOT) {
-                EndMenu();
                 bool isShiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
 
                 if (g_isOverlayActive) {
@@ -913,16 +1071,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 
     // 5. Đăng ký Window Classes
-    // Overlay Class
     WNDCLASSW overlayWc = { 0 };
     overlayWc.lpfnWndProc = OverlayProc;
     overlayWc.hInstance = hInstance;
     overlayWc.lpszClassName = OVERLAY_CLASS;
     overlayWc.hCursor = LoadCursor(NULL, IDC_CROSS);
-    overlayWc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    overlayWc.hbrBackground = NULL;
     RegisterClassW(&overlayWc);
 
-    // Recording Border Class
     WNDCLASSW borderWc = { 0 };
     borderWc.lpfnWndProc = RecordingBorderProc;
     borderWc.hInstance = hInstance;
@@ -931,7 +1087,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     borderWc.hbrBackground = NULL;
     RegisterClassW(&borderWc);
 
-    // Recording Toolbar Class
     WNDCLASSW toolbarWc = { 0 };
     toolbarWc.lpfnWndProc = RecordingToolbarProc;
     toolbarWc.hInstance = hInstance;
@@ -940,7 +1095,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     toolbarWc.hbrBackground = NULL;
     RegisterClassW(&toolbarWc);
 
-    // Background Class
     WNDCLASSW bgWc = { 0 };
     bgWc.lpfnWndProc = MainWndProc;
     bgWc.hInstance = hInstance;
@@ -971,6 +1125,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
         UnhookWindowsHookEx(g_hKeyboardHook);
         g_hKeyboardHook = NULL;
     }
+    CleanupFrozenBitmaps();
     UnregisterClassW(OVERLAY_CLASS, hInstance);
     UnregisterClassW(BORDER_CLASS, hInstance);
     UnregisterClassW(TOOLBAR_CLASS, hInstance);
