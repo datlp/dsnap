@@ -183,3 +183,69 @@ New users often forget the global hotkeys to trigger screenshot capture or scree
    Display a subtle floating tip HUD near the selection cursor or at top-center during overlay mode:
    - Photo mode: *"Drag to select • Enter / Double-click to copy & save • Esc to cancel"*
    - Video mode: *"Drag to select recording region • Esc to cancel"*
+
+---
+
+## Issue #10: [Installer] Implement dual-mode Inno Setup installer (All-Users vs. Per-User)
+
+**Labels:** `installer`, `enhancement`, `windows`
+**Status:** `Open (Planned)`
+
+### Description
+Provide a modern Windows setup wizard inspired by AutoHotkey's distribution model that accommodates both enterprise environments (system-wide `C:\Program Files`) and standard user accounts without administrator privileges (`%LocalAppData%\Programs`).
+
+### Solution
+- Create `installer/dsnap.iss` using Inno Setup 6/7.
+- Enable `PrivilegesRequiredOverridesAllowed=dialog` to prompt the user during installation:
+  - **All Users (Admin):** Target `{autopf}\dsnap` (`C:\Program Files\dsnap`) with UAC elevation.
+  - **Current User (Standard):** Target `{userappdata}\Programs\dsnap` with zero UAC elevation.
+- Add optional tasks: Desktop shortcut creation and Windows startup autostart.
+- Register uninstaller cleanly in Windows Settings (`Apps & Features`) with application icon, publisher, and version.
+- Support silent automation switches (`/VERYSILENT`, `/ALLUSERS`, `/CURRENTUSER`) for package managers.
+
+---
+
+## Issue #11: [Core] Add Portable Mode with local configuration (`dsnap.ini`)
+
+**Labels:** `core`, `portability`, `enhancement`
+**Status:** `Open (Planned)`
+
+### Description
+Ensure `dsnap` can run fully self-contained from a USB drive or arbitrary folder without leaving traces in the Windows Registry.
+
+### Solution
+- Check for `dsnap.ini` in application directory on startup, or `--portable` command-line flag.
+- When portable mode is active, read/write configuration (`RecordAudio`, autostart, hotkeys) to local `dsnap.ini` via Win32 `GetPrivateProfileStringW` / `WritePrivateProfileStringW`.
+- Maintain 100% zero-footprint portable execution when running from `dsnap-windows-x64.zip`.
+
+---
+
+## Issue #12: [CI/CD] Automate installer packaging in build scripts and GitHub Releases
+
+**Labels:** `ci`, `automation`, `devops`
+**Status:** `Open (Planned)`
+
+### Description
+Standardize the release distribution pipeline across local development and GitHub Actions.
+
+### Solution
+- Add `build.bat installer` target that invokes `iscc.exe installer\dsnap.iss`.
+- Update GitHub Actions workflow to compile and upload four standard release assets on tag push:
+  1. `dsnap-v<version>-setup.exe` (Universal Inno Setup Installer)
+  2. `dsnap-v<version>-windows-x64.exe` (Versioned standalone portable)
+  3. `dsnap-v<version>-windows-x64.zip` (Portable ZIP package)
+  4. `dsnap.exe` (Static standalone for permalinks & Winget CLI)
+
+---
+
+## Issue #13: [Distribution] Publish dsnap to Windows Package Manager (Winget)
+
+**Labels:** `distribution`, `winget`, `deployment`
+**Status:** `Open (Planned)`
+
+### Description
+Allow users to install and update `dsnap` via `winget install datlp.dsnap`.
+
+### Solution
+- Generate `microsoft/winget-pkgs` manifest using `wingetcreate`.
+- Configure manifest to consume `dsnap-v<version>-setup.exe` with silent install flags `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`.
