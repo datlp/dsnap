@@ -296,3 +296,57 @@ Windows Explorer Properties > Details was empty. Adding a `VERSIONINFO` resource
 - Add standard `VS_VERSION_INFO VERSIONINFO` block in `res/dsnap.rc` specifying `CompanyName`, `FileDescription`, `FileVersion`, `ProductVersion`, and `LegalCopyright`.
 
 **Commit:** `feat(build): embed VERSIONINFO resource in dsnap.exe (#15)`
+
+---
+
+## Issue #16: [FX] Visual mouse click effects and ripple animations for screencasting
+
+**Labels:** `enhancement`, `ui`, `recording`
+**Status:** `Planned (v1.1.0)`
+
+### Description
+During screen recording, presentations, and tutorials, viewers cannot distinguish between left-clicks, right-clicks, or cursor movement. Standard screen recording tools (Camtasia, ScreenToGif) provide click highlight rings, but they are heavy commercial software.
+
+### Functional Requirements
+- **Left-Click Ripple:** Expanding, decaying ring centered at cursor position (Accent Cyan `#00E5FF` or Gold `#FFD700`, radius 8px -> 36px, ~250ms).
+- **Right-Click Ripple:** Expanding, decaying ring with distinctive hue (Accent Coral/Red `#FF4500`, radius 8px -> 32px, ~250ms).
+- **Tray Context Menu Toggle:** Add `[v] Highlight Mouse Clicks` to enable/disable.
+- **Persistence:** Save setting in `dsnap.ini` (Portable) and Windows Registry (`HighlightClicks=1`).
+
+### Technical Architecture (Win32 C++17)
+- Dynamic Low-Level Mouse Hook (`WH_MOUSE_LL`) attached only when the feature is active (0% CPU when idle/disabled).
+- Layered transparent click-through window (`WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE`).
+- Hardware/GDI+ 32-bit ARGB double-buffered rendering at 60 FPS (< 0.2% CPU).
+
+---
+
+## Issue #17: [i18n] Multi-language localization (English, Vietnamese, Chinese, Korean, Japanese)
+
+**Labels:** `enhancement`, `i18n`, `ui`
+**Status:** `Planned (v1.1.0)`
+
+### Description
+`dsnap` is currently English-only. To provide a seamless localized experience for users globally and across Asia, the application should support the 5 major languages with zero external dependencies.
+
+### Supported Locales
+1. **English (`en-US`)** - Default
+2. **Vietnamese (`vi-VN`)** - Tiếng Việt
+3. **Simplified Chinese (`zh-CN`)** - 简体中文
+4. **Korean (`ko-KR`)** - 한국어
+5. **Japanese (`ja-JP`)** - 日本語
+
+### Functional Requirements
+- **Auto-Detection:** Automatically detect Windows system UI locale via `GetUserDefaultUILanguage()` on initial startup.
+- **Tray Context Submenu:** Dedicated `Language` submenu for instant manual switching without restarting the app.
+- **Persistence:** Save selected language in `dsnap.ini` (Portable) and Windows Registry (`Language=vi-VN`).
+- **Scope of Localized Strings:**
+  - Tray Context Menu items
+  - Tray Hover Tooltip (`szTip`)
+  - Overlay HUD guidance text
+  - Dialog prompts (FFmpeg auto-download confirm)
+- **Installer Integration:** Add multilingual support to Inno Setup installer script (`installer/dsnap.iss`).
+
+### Technical Architecture
+- Lightweight static `constexpr` string lookup table in `src/i18n.h` and `src/i18n.cpp`.
+- Zero third-party dependencies (no ICU, no gettext).
+- Executable size impact < 12 KB.
