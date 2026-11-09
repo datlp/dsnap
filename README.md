@@ -1,15 +1,21 @@
 # dsnap ⚡
 
-> **A featherweight (< 400 KB), zero-dependency native Windows region screenshot & screen recording utility powered by Win32 API, GDI+, DirectShow, and FFmpeg.**
+[![Release](https://img.shields.io/github/v/release/datlp/dsnap?color=blue&label=version)](https://github.com/datlp/dsnap/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6.svg)](https://github.com/datlp/dsnap)
+
+> **A featherweight (< 450 KB), zero-dependency native Windows region screenshot & screen recording utility powered by Win32 API, GDI+, WASAPI Loopback, and FFmpeg.**
+
+[⬇️ **Download Latest Release (dsnap.exe)**](https://github.com/datlp/dsnap/releases/latest/download/dsnap.exe) • [📦 **Download ZIP Archive**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.0-windows-x64.zip)
 
 ---
 
 ## ✨ Features
 
-- **Ultra-lightweight & Native**: Built entirely in **pure Win32 C++17**. Zero .NET Runtime, zero Electron, zero bloat. Executable size is ~400 KB with an idle memory footprint of only ~7 MB.
+- **Ultra-lightweight & Native**: Built entirely in **pure Win32 C++17**. Zero .NET Runtime, zero Electron, zero bloat. Executable size is ~430 KB with an idle memory footprint of only ~8 MB.
 - **Freeze Desktop Snapshot**:
   - When capturing (`PrintScreen`), the desktop is snapshotted into memory in under 2ms before Windows dismisses active menus.
-  - Reliably captures **Right-Click Context Menus, Tooltips, System Tray Popups, Flyouts, and Start Menu**.
+  - Reliably captures **Right-Click Context Menus, Tooltips, System Tray Popups, Flyouts, and Start Menu** (`SRCCOPY | CAPTUREBLT`).
   - Spotlight selection effect rendered at 60+ FPS using GDI double-buffering.
 - **Screen Recording with Floating Control Bar & Visual Border**:
   - **Click-through recording border**: Uses `WS_EX_TRANSPARENT` and is hidden from the recorded video using `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`.
@@ -21,9 +27,10 @@
 - **Orphan-Proof Process Management**:
   - FFmpeg process is attached to a **Windows Job Object** (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`).
   - Guarantees zero zombie `ffmpeg.exe` processes and eliminates file-in-use locking bugs even if dsnap crashes or is killed.
-- **Optional DirectShow Audio Capture**:
-  - Records microphone or system stereo mix through DirectShow.
-  - Easily toggled via the system tray context menu (defaults to **Off** for maximum simplicity).
+- **Native WASAPI Audio Loopback**:
+  - Captures crystal-clear system audio output (YouTube, Spotify, games, meetings) directly from the default playback device.
+  - No Microphone required, and no Stereo Mix or virtual audio cables needed.
+  - Easily toggled via the system tray context menu (`🎙️ Record System Audio`).
 - **Low-Level Keyboard Hook (`WH_KEYBOARD_LL`)**:
   - Intercepts `PrintScreen` and `Shift + PrintScreen` with instant responsiveness, bypassing conflicts with other hotkey tools.
 - **Multi-Monitor & Per-Monitor DPI Awareness (V2)**:
