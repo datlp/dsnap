@@ -38,6 +38,7 @@ using namespace Gdiplus;
 #define IDM_TOGGLE_AUDIO      1005
 #define IDM_AUTOSTART         1006
 #define IDM_EXIT              1007
+#define IDM_SHOW_RUNNING_TIP  1008
 
 #define TRIGGER_PHOTO         1
 #define TRIGGER_VIDEO         2
@@ -1031,6 +1032,12 @@ void ShowContextMenu(HWND hWnd) {
 
 // Background Window Proc
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    static UINT s_uTaskbarRestartMsg = RegisterWindowMessageW(L"TaskbarCreated");
+    if (uMsg == s_uTaskbarRestartMsg) {
+        Shell_NotifyIconW(NIM_ADD, &g_nid);
+        return 0;
+    }
+
     switch (uMsg) {
     case WM_CREATE: {
         g_nid.cbSize = sizeof(NOTIFYICONDATAW);
@@ -1067,6 +1074,15 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             g_recordAudio = !g_recordAudio;
             SaveAudioSetting(g_recordAudio);
             break;
+        case IDM_SHOW_RUNNING_TIP: {
+            NOTIFYICONDATAW nidTip = g_nid;
+            nidTip.uFlags = NIF_INFO;
+            wcscpy_s(nidTip.szInfoTitle, L"dsnap");
+            wcscpy_s(nidTip.szInfo, L"dsnap đã đang chạy sẵn trong khay hệ thống!\nNhấn PrtScn để chụp, Shift+PrtScn để quay.");
+            nidTip.dwInfoFlags = NIIF_INFO;
+            Shell_NotifyIconW(NIM_MODIFY, &nidTip);
+            break;
+        }
         case IDM_AUTOSTART:
             SetAutoStart(!IsAutoStartEnabled());
             break;
@@ -1129,8 +1145,15 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 // WinMain Entry Point
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     // 0. Single Instance Protection (Tránh chạy trùng lặp nhiều app dsnap)
-    HANDLE hSingleInstanceMutex = CreateMutexW(NULL, TRUE, L"Local\\Dsnap_SingleInstance_Mutex");
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+    HWND hExistingWnd = FindWindowW(BG_CLASS, L"dsnap_bg");
+    if (hExistingWnd) {
+        PostMessageW(hExistingWnd, WM_COMMAND, MAKEWPARAM(IDM_SHOW_RUNNING_TIP, 0), 0);
+        return 0; // Đã có tiến trình dsnap đang chạy, đánh thức và thoát ngay
+    }
+
+    SetLastError(0);
+    HANDLE hSingleInstanceMutex = CreateMutexW(NULL, TRUE, L"Global\\Dsnap_SingleInstance_Mutex_9999");
+    if (GetLastError() == ERROR_ALREADY_EXISTS || GetLastError() == ERROR_ACCESS_DENIED) {
         if (hSingleInstanceMutex) CloseHandle(hSingleInstanceMutex);
         return 0; // Đã có phiên bản dsnap đang chạy
     }
