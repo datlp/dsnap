@@ -8,9 +8,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
         KBDLLHOOKSTRUCT* pKey = (KBDLLHOOKSTRUCT*)lParam;
         if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
             if (pKey->vkCode == VK_SNAPSHOT) {
-                // Dismiss open popup menus so they freeze into the snapshot without blocking input
-                EndMenu();
-
                 bool isShiftPressed = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
 
                 if (g_isOverlayActive) {

@@ -52,8 +52,8 @@ void CreateFrozenDesktopSnapshot() {
     g_hFrozenBitmap = CreateCompatibleBitmap(hScreenDC, g_virtualW, g_virtualH);
     HGDIOBJ oldBmp = SelectObject(hMemDC, g_hFrozenBitmap);
 
-    // Capture entire virtual desktop
-    BitBlt(hMemDC, 0, 0, g_virtualW, g_virtualH, hScreenDC, g_virtualX, g_virtualY, SRCCOPY);
+    // Capture entire virtual desktop including layered windows (context menus, tooltips, flyouts)
+    BitBlt(hMemDC, 0, 0, g_virtualW, g_virtualH, hScreenDC, g_virtualX, g_virtualY, SRCCOPY | CAPTUREBLT);
 
     // Create Dimmed version via GDI+
     Bitmap* bmp = Bitmap::FromHBITMAP(g_hFrozenBitmap, NULL);

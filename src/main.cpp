@@ -15,8 +15,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     }
 
     SetLastError(0);
-    HANDLE hSingleInstanceMutex = CreateMutexW(NULL, TRUE, L"Global\\Dsnap_SingleInstance_Mutex_9999");
-    if (GetLastError() == ERROR_ALREADY_EXISTS || GetLastError() == ERROR_ACCESS_DENIED) {
+    HANDLE hSingleInstanceMutex = CreateMutexW(NULL, TRUE, L"Local\\Dsnap_SingleInstance_Mutex_9999");
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
         if (hSingleInstanceMutex) CloseHandle(hSingleInstanceMutex);
         return 0;
     }
