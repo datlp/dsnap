@@ -1,0 +1,14 @@
+# Build artifacts
+dsnap.res
+*.o
+*.obj
+*.pdb
+*.ilk
+
+# Python
+__pycache__/
+*.pyc
+
+# Local config / logs
+*.log
+
