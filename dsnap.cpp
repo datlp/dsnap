@@ -5,6 +5,7 @@
 #include <initguid.h>
 #include <knownfolders.h>
 #include <gdiplus.h>
+#include <dshow.h>
 #include <string>
 #include <ctime>
 #include <vector>
@@ -21,6 +22,8 @@ DEFINE_GUID(FOLDERID_Captures, 0xedc0fe99, 0xaa4b, 0x4770, 0x81, 0xa2, 0x05, 0x6
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "oleaut32.lib")
+#pragma comment(lib, "strmiids.lib")
 
 using namespace Gdiplus;
 
@@ -32,8 +35,9 @@ using namespace Gdiplus;
 #define IDM_RECORD_VIDEO      1002
 #define IDM_OPEN_SCREENSHOTS  1003
 #define IDM_OPEN_CAPTURES     1004
-#define IDM_AUTOSTART         1005
-#define IDM_EXIT              1006
+#define IDM_TOGGLE_AUDIO      1005
+#define IDM_AUTOSTART         1006
+#define IDM_EXIT              1007
 
 #define TRIGGER_PHOTO         1
 #define TRIGGER_VIDEO         2
@@ -67,6 +71,65 @@ bool g_isRecording = false;
 bool g_isPaused = false;
 int g_recordingSeconds = 0;
 std::wstring g_currentRecordingPath = L"";
+bool g_recordAudio = false; // Mặc định KHÔNG ghi kèm âm thanh
+
+// Đọc / Ghi cấu hình ghi âm thanh từ Registry
+bool LoadAudioSetting() {
+    HKEY hKey;
+    DWORD val = 0;
+    DWORD size = sizeof(val);
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, L"RecordAudio", NULL, NULL, (LPBYTE)&val, &size) == ERROR_SUCCESS) {
+            RegCloseKey(hKey);
+            return val != 0;
+        }
+        RegCloseKey(hKey);
+    }
+    return false; // Default: NO
+}
+
+void SaveAudioSetting(bool enable) {
+    HKEY hKey;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_SET_VALUE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+        DWORD val = enable ? 1 : 0;
+        RegSetValueExW(hKey, L"RecordAudio", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
+        RegCloseKey(hKey);
+    }
+}
+
+// Lấy tên thiết bị thu âm thanh DirectShow đầu tiên có sẵn
+std::wstring GetDefaultDirectShowAudioDevice() {
+    ICreateDevEnum* pDevEnum = NULL;
+    IEnumMoniker* pEnum = NULL;
+    std::wstring deviceName = L"";
+
+    HRESULT hr = CoCreateInstance(CLSID_SystemDeviceEnum, NULL,
+        CLSCTX_INPROC_SERVER, IID_ICreateDevEnum, (void**)&pDevEnum);
+    if (SUCCEEDED(hr)) {
+        hr = pDevEnum->CreateClassEnumerator(CLSID_AudioInputDeviceCategory, &pEnum, 0);
+        if (hr == S_OK) {
+            IMoniker* pMoniker = NULL;
+            if (pEnum->Next(1, &pMoniker, NULL) == S_OK) {
+                IPropertyBag* pPropBag = NULL;
+                hr = pMoniker->BindToStorage(0, 0, IID_IPropertyBag, (void**)&pPropBag);
+                if (SUCCEEDED(hr)) {
+                    VARIANT var;
+                    VariantInit(&var);
+                    hr = pPropBag->Read(L"FriendlyName", &var, 0);
+                    if (SUCCEEDED(hr) && var.bstrVal) {
+                        deviceName = var.bstrVal;
+                        VariantClear(&var);
+                    }
+                    pPropBag->Release();
+                }
+                pMoniker->Release();
+            }
+            pEnum->Release();
+        }
+        pDevEnum->Release();
+    }
+    return deviceName;
+}
 
 // Recording UI handles
 HWND g_hWndRecordingBorder = NULL;
@@ -554,7 +617,16 @@ void StartRecording(int x, int y, int w, int h) {
     std::wstring cmd = L"\"" + ffmpegPath + L"\" -y -f gdigrab -framerate 30 -offset_x " +
         std::to_wstring(x) + L" -offset_y " + std::to_wstring(y) +
         L" -video_size " + std::to_wstring(w) + L"x" + std::to_wstring(h) +
-        L" -i desktop -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \"" +
+        L" -i desktop";
+
+    if (g_recordAudio) {
+        std::wstring audioDev = GetDefaultDirectShowAudioDevice();
+        if (!audioDev.empty()) {
+            cmd += L" -f dshow -i audio=\"" + audioDev + L"\" -c:a aac -b:a 128k";
+        }
+    }
+
+    cmd += L" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \"" +
         g_currentRecordingPath + L"\"";
 
     std::vector<wchar_t> cmdBuf(cmd.begin(), cmd.end());
@@ -943,6 +1015,9 @@ void ShowContextMenu(HWND hWnd) {
     AppendMenuW(hMenu, MF_STRING, IDM_OPEN_CAPTURES, L"📁 Mở thư mục Video quay");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
 
+    UINT audioFlag = g_recordAudio ? MF_CHECKED : MF_UNCHECKED;
+    AppendMenuW(hMenu, MF_STRING | audioFlag, IDM_TOGGLE_AUDIO, L"🎙️ Quay kèm âm thanh (Audio)");
+
     UINT flag = IsAutoStartEnabled() ? MF_CHECKED : MF_UNCHECKED;
     AppendMenuW(hMenu, MF_STRING | flag, IDM_AUTOSTART, L"Start with Windows");
     AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
@@ -987,6 +1062,10 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
         case IDM_OPEN_CAPTURES:
             ShellExecuteW(NULL, L"open", GetCapturesDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
+            break;
+        case IDM_TOGGLE_AUDIO:
+            g_recordAudio = !g_recordAudio;
+            SaveAudioSetting(g_recordAudio);
             break;
         case IDM_AUTOSTART:
             SetAutoStart(!IsAutoStartEnabled());
@@ -1049,11 +1128,19 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 // WinMain Entry Point
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
+    // 0. Single Instance Protection (Tránh chạy trùng lặp nhiều app dsnap)
+    HANDLE hSingleInstanceMutex = CreateMutexW(NULL, TRUE, L"Local\\Dsnap_SingleInstance_Mutex");
+    if (GetLastError() == ERROR_ALREADY_EXISTS) {
+        if (hSingleInstanceMutex) CloseHandle(hSingleInstanceMutex);
+        return 0; // Đã có phiên bản dsnap đang chạy
+    }
+
     g_hInstance = hInstance;
 
     // 1. Khởi tạo COM & Per-Monitor DPI Awareness
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     EnableDpiAwareness();
+    g_recordAudio = LoadAudioSetting();
 
     // 2. Load NTDLL suspend/resume function pointers for Pause/Continue
     HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll");
@@ -1132,5 +1219,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     UnregisterClassW(BG_CLASS, hInstance);
     GdiplusShutdown(gdiplusToken);
     CoUninitialize();
+
+    if (hSingleInstanceMutex) {
+        ReleaseMutex(hSingleInstanceMutex);
+        CloseHandle(hSingleInstanceMutex);
+    }
     return 0;
 }
