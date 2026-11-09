@@ -1,91 +1,128 @@
 # dsnap ⚡
 
-> **A featherweight (< 400 KB), zero-bloat native Windows region screenshot & screen recording utility powered by Win32 API, GDI+, DirectShow, and FFmpeg.**
+> **A featherweight (< 400 KB), zero-dependency native Windows region screenshot & screen recording utility powered by Win32 API, GDI+, DirectShow, and FFmpeg.**
 
 ---
 
 ## ✨ Features
 
-- **Siêu nhẹ & Native**: Viết bằng **C++ Win32 API thuần**, không phụ thuộc .NET Runtime hay bất kỳ thư viện cồng kềnh nào. File `.exe` chỉ ~390 KB, chiếm ~7 MB RAM khi chạy ngầm.
-- **Đóng băng màn hình (Freeze Desktop Snapshot)**:
-  - Khi chụp ảnh (`PrintScreen`), hệ thống chụp ngay lập tức toàn bộ desktop vào RAM trong 2ms trước khi Windows kịp đóng các menu đang mở.
-  - Cho phép chụp trọn vẹn **menu chuột phải (Context Menu), Start Menu, System Tray, Tooltip, Flyout**.
-  - Hiệu ứng chiếu sáng vùng chọn (Illuminate / Spotlight) mượt mà 60+ FPS với Double-Buffering.
-- **Quay video kèm thanh điều khiển nổi & khung viền nhấp nháy**:
-  - **Khung viền đỏ bao quanh vùng quay**: Xuyên thấu click chuột 100% (`WS_EX_TRANSPARENT`), tàng hình trước video bằng `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`.
-  - **Thanh điều khiển góc trên bên phải**:
-    - `● 00:00`: Đồng hồ đếm thời gian quay thời gian thực.
-    - `⏸ / ▶`: Tạm dừng / Tiếp tục quay tức thì (sử dụng `NtSuspendProcess`).
-    - `⏹`: Dừng quay và lưu file video MP4 hoàn chỉnh.
-    - `✕`: Hủy quay ngay lập tức và **tự động xóa file video tạm**.
-- **Tùy chọn quay kèm âm thanh (Audio Recording)**:
-  - Tích hợp DirectShow Audio Capture (thu từ Microphone hoặc Stereo Mix).
-  - Tùy chọn bật/tắt trong khay hệ thống (mặc định: **KHÔNG** để giữ sự tối giản và nhẹ nhàng).
-- **Chiếm quyền phím tắt bằng Hook cấp thấp (`WH_KEYBOARD_LL`)**:
-  - Không bị chặn bởi các app đã đăng ký trước (`RegisterHotKey`) như Windows Snipping Tool hay OneDrive.
-  - Tự động "nuốt phím" (consume key) để phản hồi tức thì.
-- **Hỗ trợ đa màn hình (Multi-Monitor)**: Phủ toàn bộ không gian Virtual Screen (`SM_XVIRTUALSCREEN`, `SM_CXVIRTUALSCREEN`,...).
-- **Chuẩn Per-Monitor DPI (V2)**: Không bị mờ hay lệch tọa độ trên màn hình 2K/4K có tỉ lệ scaling (125%, 150%, 200%).
-- **Lưu trữ chuẩn Windows Known Folders**:
-  - Ảnh: `Pictures\Screenshots\dsnap-screenshot-yyyyMMdd-HHmmss.png`
-  - Video: `Videos\Captures\dsnap-recording-yyyyMMdd-HHmmss.mp4`
-- **Bảo vệ Single-Instance 2 lớp**:
-  - Ngăn chặn hoàn toàn việc mở nhiều tiến trình `dsnap.exe`.
-  - Tự động hiện thông báo khay hệ thống nhắc nhở khi người dùng mở lại file `.exe`.
-- **Icon đa chế độ (Dual-Mode)**: Rõ nét, nổi bật trên cả Dark Mode và Light Mode của Windows.
+- **Ultra-lightweight & Native**: Built entirely in **pure Win32 C++17**. Zero .NET Runtime, zero Electron, zero bloat. Executable size is ~400 KB with an idle memory footprint of only ~7 MB.
+- **Freeze Desktop Snapshot**:
+  - When capturing (`PrintScreen`), the desktop is snapshotted into memory in under 2ms before Windows dismisses active menus.
+  - Reliably captures **Right-Click Context Menus, Tooltips, System Tray Popups, Flyouts, and Start Menu**.
+  - Spotlight selection effect rendered at 60+ FPS using GDI double-buffering.
+- **Screen Recording with Floating Control Bar & Visual Border**:
+  - **Click-through recording border**: Uses `WS_EX_TRANSPARENT` and is hidden from the recorded video using `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`.
+  - **Floating recording toolbar**:
+    - `● 00:00`: Live elapsed recording timer.
+    - `⏸ / ▶`: Instant Pause / Resume via low-level `NtSuspendProcess` / `NtResumeProcess`.
+    - `⏹`: Stop recording and finalize the MP4 container cleanly.
+    - `✕`: Cancel recording instantly and **automatically delete partial video**.
+- **Orphan-Proof Process Management**:
+  - FFmpeg process is attached to a **Windows Job Object** (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`).
+  - Guarantees zero zombie `ffmpeg.exe` processes and eliminates file-in-use locking bugs even if dsnap crashes or is killed.
+- **Optional DirectShow Audio Capture**:
+  - Records microphone or system stereo mix through DirectShow.
+  - Easily toggled via the system tray context menu (defaults to **Off** for maximum simplicity).
+- **Low-Level Keyboard Hook (`WH_KEYBOARD_LL`)**:
+  - Intercepts `PrintScreen` and `Shift + PrintScreen` with instant responsiveness, bypassing conflicts with other hotkey tools.
+- **Multi-Monitor & Per-Monitor DPI Awareness (V2)**:
+  - Spans the complete Virtual Screen (`SM_XVIRTUALSCREEN`, `SM_CXVIRTUALSCREEN`).
+  - Crisp rendering and pixel-perfect selection across multi-monitor setups with mixed DPI scaling factors (100%, 125%, 150%, 200%).
+- **Standard Windows Known Folders**:
+  - Screenshots: `Pictures\Screenshots\dsnap-screenshot-yyyyMMdd-HHmmss.png` (auto-copied to Clipboard as `CF_BITMAP`).
+  - Recordings: `Videos\Captures\dsnap-recording-yyyyMMdd-HHmmss.mp4`.
+- **Dual-Layer Single-Instance Protection**:
+  - Enforced via a Global Named Mutex and window probe.
+  - Displays a tray hint balloon if a second instance is launched.
+- **High-Contrast Dual-Mode Icon**:
+  - Custom camera viewfinder silhouette optimized for crisp visibility across both Windows Dark Mode and Light Mode taskbars.
 
 ---
 
-## ⌨️ Phím tắt & Thao tác (Hotkeys)
+## ⌨️ Hotkeys & Shortcuts
 
-| Thao tác | Hành vi |
+| Hotkey | Action |
 | :--- | :--- |
-| **`PrintScreen`** | Đóng băng màn hình, kéo chuột chọn vùng $\rightarrow$ Lưu ảnh PNG vào `Pictures\Screenshots` và **tự động Copy ảnh vào Clipboard** (`Ctrl + V`). |
-| **`Shift + PrintScreen`** (Lần 1) | Kéo chọn vùng $\rightarrow$ Bắt đầu quay video MP4 ngầm (kèm khung viền và thanh điều khiển). |
-| **`Shift + PrintScreen`** (Lần 2) | Dừng quay và lưu video an toàn vào `Videos\Captures`. |
-| **`Escape`** (ESC) | Hủy thao tác chọn vùng chụp/quay. |
+| **`PrintScreen`** | Freezes the screen and opens the region selector. Saves PNG to `Pictures\Screenshots` and **copies image to Clipboard** (`Ctrl + V`). |
+| **`Shift + PrintScreen`** | Selects region and starts background MP4 recording with highlight border and floating toolbar. Pressing again cleanly stops recording. |
+| **`Escape`** (ESC) | Cancels active region selection. |
 
 ---
 
-## 🖱️ Menu Khay Hệ Thống (System Tray)
+## 🖱️ System Tray Context Menu
 
-Chuột phải vào icon `dsnap` ở góc phải Taskbar để truy cập các tính năng:
-* 📸 **Chụp ảnh màn hình (PrintScreen)**
-* 🎥 **Quay video màn hình (Shift + PrtScn)**
-* 📁 **Mở thư mục Ảnh chụp**
-* 📁 **Mở thư mục Video quay**
-* 🎙️ **Quay kèm âm thanh (Audio)** *(Tick để bật / Mặc định tắt)*
-* **Start with Windows** *(Tự khởi động cùng hệ thống)*
-* **Exit** *(Thoát hoàn toàn)*
+Right-click the `dsnap` icon in the system tray to access options:
 
----
-
-## 🚀 Cài đặt & Sử dụng
-
-1. **Chuẩn bị FFmpeg**: Đặt `ffmpeg.exe` cùng thư mục với `dsnap.exe` hoặc thêm vào biến môi trường `PATH`.
-2. **Chạy ứng dụng**: Click đúp `dsnap.exe`. Ứng dụng sẽ chạy ngầm dưới góc phải thanh Taskbar (System Tray).
+- 📸 **Capture Screen (PrintScreen)**
+- 🎥 **Record Screen (Shift + PrtScn)**
+- 📁 **Open Screenshots Folder**
+- 📁 **Open Recordings Folder**
+- 🎙️ **Record Audio** *(Check to enable / Off by default)*
+- **Start with Windows** *(Enable autostart on user login)*
+- **Exit** *(Terminates application and active recordings)*
 
 ---
 
-## 🛠️ Biên dịch từ mã nguồn (Build)
+## 🚀 Getting Started
 
-Chỉ cần chạy file `build.bat` (tự động phát hiện Clang++ / MinGW / MSVC):
+### Prerequisites
+- **Windows 10 / 11** (64-bit recommended)
+- **FFmpeg**: Ensure `ffmpeg.exe` is either available in your system `PATH` or placed in the same folder as `dsnap.exe`.
+
+### Running
+Simply run `dsnap.exe`. It will minimize to the Windows System Tray (notification area) and listen for global capture hotkeys.
+
+---
+
+## 🛠️ Building from Source
+
+### Option 1: Root Build Script (`build.bat`)
+Automatically detects **LLVM Clang++**, **MinGW GCC**, or **MSVC**:
 ```cmd
 build.bat
 ```
 
+### Option 2: Modern CMake
+```cmd
+mkdir build && cd build
+cmake ..
+cmake --build . --config Release
+```
+
 ---
 
-## 📄 Cấu trúc dự án
+## 📁 Repository Structure
 
 ```text
 dsnap/
-├── dsnap.cpp           # Toàn bộ mã nguồn Win32 C++ (Single File)
-├── dsnap.manifest      # Khai báo Per-Monitor DPI Awareness V2 & Common Controls
-├── dsnap.rc            # File tài nguyên nhúng Icon và Manifest vào binary
-├── dsnap.ico           # Bộ icon đa độ phân giải tối ưu Dark/Light Mode
-├── build.bat           # Script build tự động
-├── dsnap.exe           # Binary thực thi (< 400 KB)
-├── dsnap.py            # Bản script Python tương đương (dành cho thử nghiệm nhanh)
-└── README.md           # Hướng dẫn sử dụng & tài liệu
+├── .github/
+│   └── workflows/
+│       └── build.yml       # GitHub Actions CI build & release workflow
+├── res/
+│   ├── dsnap.ico           # Multi-resolution high-contrast application icon
+│   ├── dsnap.manifest      # Per-Monitor DPI V2 & Common Controls manifest
+│   ├── dsnap.rc            # Windows resource script
+│   └── resource.h          # Resource identifiers
+├── src/
+│   ├── audio.cpp / .h      # DirectShow audio device enumerator
+│   ├── capture.cpp / .h    # GDI freeze desktop snapshot & PNG encoder
+│   ├── common.cpp / .h     # Global definitions, DPI context, window affinities
+│   ├── config.cpp / .h     # Registry configuration & Windows known folders
+│   ├── hotkey.cpp / .h     # Low-level keyboard hook (WH_KEYBOARD_LL)
+│   ├── main.cpp            # WinMain entry point, single-instance mutex, event loop
+│   ├── overlay.cpp / .h    # Snipping selection overlay & spotlight effect
+│   ├── recorder.cpp / .h   # FFmpeg pipe controller, border, floating toolbar
+│   └── tray.cpp / .h       # System tray icon & context menu management
+├── .gitignore              # Ignored build outputs and media files
+├── build.bat               # Automated one-click native build script
+├── CMakeLists.txt          # Modern CMake configuration
+├── LICENSE                 # MIT License
+└── README.md               # Project documentation
 ```
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

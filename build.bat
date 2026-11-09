@@ -2,7 +2,7 @@
 setlocal
 
 echo ============================================================
-echo   dsnap - Build Script (C++ Win32 Native)
+echo   dsnap - Build Script (Modern C++ Win32 Native)
 echo ============================================================
 
 :: Terminate running instance before building
@@ -37,8 +37,8 @@ if %errorlevel% equ 0 (
 where cl >nul 2>&1
 if %errorlevel% equ 0 (
     echo [INFO] Detected MSVC compiler (cl.exe)...
-    rc /fo dsnap.res dsnap.rc
-    cl /O2 /std:c++17 /EHsc dsnap.cpp dsnap.res /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib gdiplus.lib shell32.lib advapi32.lib ole32.lib /OUT:dsnap.exe
+    rc /fo res\dsnap.res /Ires res\dsnap.rc
+    cl /O2 /std:c++17 /EHsc /Isrc /Ires src\*.cpp res\dsnap.res /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib gdiplus.lib shell32.lib advapi32.lib ole32.lib oleaut32.lib strmiids.lib /OUT:dsnap.exe
     if %errorlevel% equ 0 (
         echo [SUCCESS] Built dsnap.exe successfully with MSVC!
         dir dsnap.exe
@@ -51,11 +51,14 @@ goto end
 
 :do_compile
 echo [INFO] Using compiler: %CXX%
-echo [INFO] Compiling Windows resource (manifest)...
-"%RC%" dsnap.rc -O coff -o dsnap.res
+echo [INFO] Compiling Windows resources...
+pushd res
+"%RC%" -i dsnap.rc -o dsnap.res -O coff
+popd
 
-echo [INFO] Compiling dsnap.exe with -O3 optimization...
-"%CXX%" -O3 -std=c++17 -mwindows dsnap.cpp dsnap.res -o dsnap.exe -lgdi32 -luser32 -lshell32 -ladvapi32 -lgdiplus -lole32 -loleaut32 -lstrmiids -static
+echo [INFO] Compiling modular sources into dsnap.exe with -O3 optimization...
+set "SRCS=src\main.cpp src\common.cpp src\config.cpp src\audio.cpp src\capture.cpp src\overlay.cpp src\recorder.cpp src\tray.cpp src\hotkey.cpp"
+"%CXX%" -O3 -std=c++17 -mwindows -Isrc -Ires %SRCS% res\dsnap.res -o dsnap.exe -lgdi32 -luser32 -lshell32 -ladvapi32 -lgdiplus -lole32 -loleaut32 -lstrmiids -static
 
 if %errorlevel% equ 0 (
     if not "%STRIP%"=="" (
@@ -70,4 +73,3 @@ if %errorlevel% equ 0 (
 )
 
 :end
-pause

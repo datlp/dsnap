@@ -1,5 +1,8 @@
 # Build artifacts
+*.exe
 dsnap.res
+res/*.res
+build/
 *.o
 *.obj
 *.pdb
