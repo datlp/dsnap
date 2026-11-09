@@ -21,7 +21,7 @@ jobs:
       shell: cmd
       run: |
         rc /fo res\dsnap.res /Ires res\dsnap.rc
-        cl /O2 /std:c++17 /EHsc /Isrc /Ires src\*.cpp res\dsnap.res /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib gdiplus.lib shell32.lib advapi32.lib ole32.lib oleaut32.lib strmiids.lib /OUT:dsnap.exe
+        cl /O2 /std:c++17 /EHsc /Isrc /Ires src\*.cpp res\dsnap.res /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib gdiplus.lib shell32.lib advapi32.lib ole32.lib oleaut32.lib strmiids.lib urlmon.lib /OUT:dsnap.exe
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
