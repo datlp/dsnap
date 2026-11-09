@@ -5,7 +5,9 @@
 ; ==============================================================================
 
 #define MyAppName "dsnap"
-#define MyAppVersion "1.0.1"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.2"
+#endif
 #define MyAppPublisher "datlp"
 #define MyAppURL "https://github.com/datlp/dsnap"
 #define MyAppExeName "dsnap.exe"
