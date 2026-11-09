@@ -1,6 +1,6 @@
 #pragma once
 
-#define IDI_APPICON           101
+#define IDI_APPICON           1
 #define IDM_CAPTURE_PHOTO     1001
 #define IDM_RECORD_VIDEO      1002
 #define IDM_OPEN_SCREENSHOTS  1003
