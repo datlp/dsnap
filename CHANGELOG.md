@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.1.1] - 2026-11-12
+
+### Fixed
+- **UTF-8 Source Encoding Mojibake (Issue #20):** Added `/utf-8` compiler flag to MSVC invocations in CI workflow and build scripts, preventing MSVC from misinterpreting multi-byte international strings as Windows-1252 ANSI.
+- **Source Charset Standard:** Re-encoded internationalized source files (`src/i18n.cpp`, `src/tray.cpp`, `src/overlay.cpp`) with explicit UTF-8 BOM.
+- **Refined Tray Typography:** Polished menu labels across all 5 languages (English, Tiếng Việt, 简体中文, 한국어, 日本語) for clean native Windows rendering without surrogate-pair emoji glitches.
+
+---
+
 ## [1.1.0] - 2026-11-12
 
 ### Added
@@ -40,3 +49,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Floating recording control toolbar with pause/resume and live elapsed timer (Issue #5).
 - DirectShow system loopback audio recording toggle (Issue #6).
 - Global mutex single-instance application lifecycle enforcement (Issue #7).
+

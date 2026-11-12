@@ -358,6 +358,26 @@ Some power users require `dsnap` to run continuously with full Administrator pri
 
 ---
 
+## Issue #20: [i18n/Build] Fix UTF-8 source encoding mojibake in MSVC compiler and refine tray menu typography
+
+**Labels:** `bug`, `i18n`, `ui`, `build`
+**Status:** `Closed (v1.1.1)`
+
+### Description
+When running `dsnap`, context menu and submenu strings were corrupted into ANSI mojibake characters (`Tiáº¿ng Viá»‡t`, `ç®€ä½“ä¸­æ–‡`, `ðŸ"`).
+
+### Root Cause
+MSVC (`cl.exe`) in CI defaults to the host machine's ANSI code page (Windows-1252 / CP1252) when compiling source files lacking a UTF-8 BOM and without the `/utf-8` compiler flag. Multi-byte UTF-8 sequences were misparsed as single CP1252 bytes before being widened to `wchar_t` (`L"..."`).
+
+### Architectural Solution
+- Added `/utf-8` compiler flag to MSVC invocations in CI workflow (`build.yml`) and `build.bat`.
+- Re-encoded internationalized source files (`src/i18n.cpp`, `src/tray.cpp`, `src/overlay.cpp`) with explicit UTF-8 BOM.
+- Polished tray menu typography across English, Vietnamese, Simplified Chinese, Korean, and Japanese to use native clean text without surrogate-pair emoji glitches.
+
+**Commit:** `fix(i18n): resolve UTF-8 mojibake with /utf-8 compiler flag and polish tray typography (#20)`
+
+---
+
 ## Issue #17: [i18n] Multi-language localization (English, Vietnamese, Chinese, Korean, Japanese)
 
 **Labels:** `enhancement`, `i18n`, `ui`
@@ -426,3 +446,23 @@ Some power users require `dsnap` to run continuously with full Administrator pri
 - Follow the Microsoft PowerToys and AutoHotkey distribution model: maintain default `asInvoker` execution.
 - Add an optional setting `Run with Administrator Privileges` in the tray menu that configures a scheduled task via Windows Task Scheduler (`\dsnap_Autostart_Admin`) with `/RL HIGHEST`.
 - Allows `dsnap` to start automatically on login with full elevation without displaying UAC consent dialogs.
+
+---
+
+## Issue #20: [i18n/Build] Fix UTF-8 source encoding mojibake in MSVC compiler and refine tray menu typography
+
+**Labels:** `bug`, `i18n`, `ui`, `build`
+**Status:** `Closed (v1.1.1)`
+
+### Description
+When running `dsnap`, context menu and submenu strings were corrupted into ANSI mojibake characters (`Tiáº¿ng Viá»‡t`, `ç®€ä½“ä¸­æ–‡`, `ðŸ"`).
+
+### Root Cause
+MSVC (`cl.exe`) in CI defaults to the host machine's ANSI code page (Windows-1252 / CP1252) when compiling source files lacking a UTF-8 BOM and without the `/utf-8` compiler flag. Multi-byte UTF-8 sequences were misparsed as single CP1252 bytes before being widened to `wchar_t` (`L"..."`).
+
+### Architectural Solution
+- Added `/utf-8` compiler flag to MSVC invocations in CI workflow (`build.yml`) and `build.bat`.
+- Re-encoded internationalized source files (`src/i18n.cpp`, `src/tray.cpp`, `src/overlay.cpp`) with explicit UTF-8 BOM.
+- Polished tray menu typography across English, Vietnamese, Simplified Chinese, Korean, and Japanese to use native clean text without surrogate-pair emoji glitches.
+
+**Commit:** `fix(i18n): resolve UTF-8 mojibake with /utf-8 compiler flag and polish tray typography (#20)`

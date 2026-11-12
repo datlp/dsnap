@@ -1,4 +1,4 @@
-#include "tray.h"
+﻿#include "tray.h"
 #include "config.h"
 #include "capture.h"
 #include "overlay.h"

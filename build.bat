@@ -38,7 +38,7 @@ where cl >nul 2>&1
 if %errorlevel% equ 0 (
     echo [INFO] Detected MSVC compiler (cl.exe)...
     rc /fo res\dsnap.res /Ires res\dsnap.rc
-    cl /O2 /std:c++17 /EHsc /Isrc /Ires src\*.cpp res\dsnap.res /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib gdiplus.lib shell32.lib advapi32.lib ole32.lib oleaut32.lib strmiids.lib urlmon.lib /OUT:dsnap.exe
+    cl /utf-8 /O2 /std:c++17 /EHsc /Isrc /Ires src\*.cpp res\dsnap.res /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib gdiplus.lib shell32.lib advapi32.lib ole32.lib oleaut32.lib strmiids.lib urlmon.lib /OUT:dsnap.exe
     if %errorlevel% equ 0 (
         echo [SUCCESS] Built dsnap.exe successfully with MSVC!
         dir dsnap.exe

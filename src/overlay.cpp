@@ -1,4 +1,4 @@
-#include "overlay.h"
+﻿#include "overlay.h"
 #include "capture.h"
 #include "recorder.h"
 #include "i18n.h"

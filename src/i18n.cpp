@@ -1,4 +1,4 @@
-#include "i18n.h"
+﻿#include "i18n.h"
 #include <windows.h>
 
 static Language s_currentLanguage = Language::English;
@@ -61,14 +61,14 @@ const wchar_t* Tr(StringId id) {
     switch (s_currentLanguage) {
     case Language::Vietnamese:
         switch (id) {
-        case StringId::MenuCapturePhoto:         return L"📸 Chụp màn hình (PrintScreen)";
-        case StringId::MenuRecordVideo:          return L"🎥 Quay màn hình (Shift + PrtScn)";
-        case StringId::MenuOpenScreenshots:      return L"📁 Mở thư mục ảnh chụp";
-        case StringId::MenuOpenCaptures:         return L"📁 Mở thư mục video quay";
-        case StringId::MenuToggleAudio:          return L"🎙️ Ghi âm thanh hệ thống";
-        case StringId::MenuHighlightClicks:      return L"✨ Hiệu ứng click chuột";
+        case StringId::MenuCapturePhoto:         return L"Chụp màn hình (PrintScreen)";
+        case StringId::MenuRecordVideo:          return L"Quay màn hình (Shift + PrtScn)";
+        case StringId::MenuOpenScreenshots:      return L"Mở thư mục ảnh chụp";
+        case StringId::MenuOpenCaptures:         return L"Mở thư mục video quay";
+        case StringId::MenuToggleAudio:          return L"Ghi âm thanh hệ thống";
+        case StringId::MenuHighlightClicks:      return L"Hiệu ứng click chuột";
         case StringId::MenuStartWithWindows:     return L"Khởi động cùng Windows";
-        case StringId::MenuLanguage:             return L"🌐 Ngôn ngữ (Language)";
+        case StringId::MenuLanguage:             return L"Ngôn ngữ (Language)";
         case StringId::MenuExit:                 return L"Thoát";
         case StringId::TrayTipDefault:           return L"dsnap\n• Chụp: PrtScn\n• Quay: Shift + PrtScn";
         case StringId::OverlayGuidePhoto:        return L"Kéo: Chọn vùng chụp | Nháy đúp: Toàn màn hình | ESC: Hủy";
@@ -82,14 +82,14 @@ const wchar_t* Tr(StringId id) {
 
     case Language::Chinese:
         switch (id) {
-        case StringId::MenuCapturePhoto:         return L"📸 截取屏幕 (PrintScreen)";
-        case StringId::MenuRecordVideo:          return L"🎥 录制屏幕 (Shift + PrtScn)";
-        case StringId::MenuOpenScreenshots:      return L"📁 打开截图文件夹";
-        case StringId::MenuOpenCaptures:         return L"📁 打开录制文件夹";
-        case StringId::MenuToggleAudio:          return L"🎙️ 录制系统声音";
-        case StringId::MenuHighlightClicks:      return L"✨ 鼠标点击高亮效果";
+        case StringId::MenuCapturePhoto:         return L"截取屏幕 (PrintScreen)";
+        case StringId::MenuRecordVideo:          return L"录制屏幕 (Shift + PrtScn)";
+        case StringId::MenuOpenScreenshots:      return L"打开截图文件夹";
+        case StringId::MenuOpenCaptures:         return L"打开录制文件夹";
+        case StringId::MenuToggleAudio:          return L"录制系统声音";
+        case StringId::MenuHighlightClicks:      return L"鼠标点击高亮效果";
         case StringId::MenuStartWithWindows:     return L"随 Windows 启动";
-        case StringId::MenuLanguage:             return L"🌐 语言 (Language)";
+        case StringId::MenuLanguage:             return L"语言 (Language)";
         case StringId::MenuExit:                 return L"退出";
         case StringId::TrayTipDefault:           return L"dsnap\n• 截图: PrtScn\n• 录屏: Shift + PrtScn";
         case StringId::OverlayGuidePhoto:        return L"拖拽: 选择截图区域 | 双击: 全屏截图 | ESC: 取消";
@@ -103,14 +103,14 @@ const wchar_t* Tr(StringId id) {
 
     case Language::Korean:
         switch (id) {
-        case StringId::MenuCapturePhoto:         return L"📸 화면 캡처 (PrintScreen)";
-        case StringId::MenuRecordVideo:          return L"🎥 화면 녹화 (Shift + PrtScn)";
-        case StringId::MenuOpenScreenshots:      return L"📁 스크린샷 폴더 열기";
-        case StringId::MenuOpenCaptures:         return L"📁 녹화 폴더 열기";
-        case StringId::MenuToggleAudio:          return L"🎙️ 시스템 오디오 녹음";
-        case StringId::MenuHighlightClicks:      return L"✨ 마우스 클릭 효과 표시";
+        case StringId::MenuCapturePhoto:         return L"화면 캡처 (PrintScreen)";
+        case StringId::MenuRecordVideo:          return L"화면 녹화 (Shift + PrtScn)";
+        case StringId::MenuOpenScreenshots:      return L"스크린샷 폴더 열기";
+        case StringId::MenuOpenCaptures:         return L"녹화 폴더 열기";
+        case StringId::MenuToggleAudio:          return L"시스템 오디오 녹음";
+        case StringId::MenuHighlightClicks:      return L"마우스 클릭 효과 표시";
         case StringId::MenuStartWithWindows:     return L"Windows 시작 시 실행";
-        case StringId::MenuLanguage:             return L"🌐 언어 (Language)";
+        case StringId::MenuLanguage:             return L"언어 (Language)";
         case StringId::MenuExit:                 return L"종료";
         case StringId::TrayTipDefault:           return L"dsnap\n• 캡처: PrtScn\n• 녹화: Shift + PrtScn";
         case StringId::OverlayGuidePhoto:        return L"드래그: 영역 선택 | 더블클릭: 전체 화면 | ESC: 취소";
@@ -124,14 +124,14 @@ const wchar_t* Tr(StringId id) {
 
     case Language::Japanese:
         switch (id) {
-        case StringId::MenuCapturePhoto:         return L"📸 画面キャプチャ (PrintScreen)";
-        case StringId::MenuRecordVideo:          return L"🎥 画面録画 (Shift + PrtScn)";
-        case StringId::MenuOpenScreenshots:      return L"📁 スクリーンショットフォルダを開く";
-        case StringId::MenuOpenCaptures:         return L"📁 録画フォルダを開く";
-        case StringId::MenuToggleAudio:          return L"🎙️ システムオーディオ録音";
-        case StringId::MenuHighlightClicks:      return L"✨ マウスクリック効果を表示";
-        case StringId::MenuStartWithWindows:     return L"Windows起動時に開始";
-        case StringId::MenuLanguage:             return L"🌐 言語 (Language)";
+        case StringId::MenuCapturePhoto:         return L"画面キャプチャ (PrintScreen)";
+        case StringId::MenuRecordVideo:          return L"画面録画 (Shift + PrtScn)";
+        case StringId::MenuOpenScreenshots:      return L"スクリーンショットフォルダを開く";
+        case StringId::MenuOpenCaptures:         return L"録画フォルダを開く";
+        case StringId::MenuToggleAudio:          return L"システム音声を録音";
+        case StringId::MenuHighlightClicks:      return L"マウスクリック効果を表示";
+        case StringId::MenuStartWithWindows:     return L"Windows 起動時に実行";
+        case StringId::MenuLanguage:             return L"言語 (Language)";
         case StringId::MenuExit:                 return L"終了";
         case StringId::TrayTipDefault:           return L"dsnap\n• キャプチャ: PrtScn\n• 録画: Shift + PrtScn";
         case StringId::OverlayGuidePhoto:        return L"ドラッグ: 領域選択 | ダブルクリック: 全画面 | ESC: キャンセル";
@@ -146,14 +146,14 @@ const wchar_t* Tr(StringId id) {
     case Language::English:
     default:
         switch (id) {
-        case StringId::MenuCapturePhoto:         return L"📸 Capture Screen (PrintScreen)";
-        case StringId::MenuRecordVideo:          return L"🎥 Record Screen (Shift + PrtScn)";
-        case StringId::MenuOpenScreenshots:      return L"📁 Open Screenshots Folder";
-        case StringId::MenuOpenCaptures:         return L"📁 Open Recordings Folder";
-        case StringId::MenuToggleAudio:          return L"🎙️ Record System Audio";
-        case StringId::MenuHighlightClicks:      return L"✨ Highlight Mouse Clicks";
+        case StringId::MenuCapturePhoto:         return L"Capture Screen (PrintScreen)";
+        case StringId::MenuRecordVideo:          return L"Record Screen (Shift + PrtScn)";
+        case StringId::MenuOpenScreenshots:      return L"Open Screenshots Folder";
+        case StringId::MenuOpenCaptures:         return L"Open Recordings Folder";
+        case StringId::MenuToggleAudio:          return L"Record System Audio";
+        case StringId::MenuHighlightClicks:      return L"Highlight Mouse Clicks";
         case StringId::MenuStartWithWindows:     return L"Start with Windows";
-        case StringId::MenuLanguage:             return L"🌐 Language";
+        case StringId::MenuLanguage:             return L"Language";
         case StringId::MenuExit:                 return L"Exit";
         case StringId::TrayTipDefault:           return L"dsnap\n• Capture: PrtScn\n• Record: Shift + PrtScn";
         case StringId::OverlayGuidePhoto:        return L"Drag: Select Region | Double-click: Fullscreen | ESC: Cancel";
@@ -167,4 +167,3 @@ const wchar_t* Tr(StringId id) {
     }
     return L"";
 }
-
