@@ -322,66 +322,10 @@ During screen recording, presentations, and tutorials, viewers cannot distinguis
 
 ---
 
-## Issue #18: [Core/UIPI] Implement Hybrid Hotkey Engine (RegisterHotKey + WH_KEYBOARD_LL) to capture over elevated windows
-
-**Labels:** `bug`, `core`, `hotkey`, `uipi`, `windows`
-**Status:** `Closed (v1.1.0)`
-
-### Description
-When user focus is on an elevated window (running with Administrator rights such as CrystalDiskInfo, Task Manager, Registry Editor, or elevated PowerShell), pressing `PrintScreen` or `Shift + PrintScreen` did not trigger `dsnap`.
-
-### Root Cause
-Under Windows User Interface Privilege Isolation (UIPI), low-level keyboard hooks (`WH_KEYBOARD_LL`) installed by Medium Integrity processes are dropped by Windows when an elevated (High Integrity) window receives keyboard focus to prevent untrusted keylogging.
-
-### Architectural Solution
-- **Hybrid Dual-Engine Architecture:**
-  1. **Primary Kernel Hotkey:** Register `RegisterHotKey(g_hMainWnd, HOTKEY_ID_PHOTO, 0, VK_SNAPSHOT)` and `RegisterHotKey(g_hMainWnd, HOTKEY_ID_VIDEO, MOD_SHIFT, VK_SNAPSHOT)`. Because this is managed directly in Windows kernel (`win32k.sys`), `WM_HOTKEY` messages bypass UIPI and are dispatched to `dsnap` even when elevated Administrator windows are focused.
-  2. **Fallback Low-Level Hook:** Maintain `WH_KEYBOARD_LL` as an active fallback in case `RegisterHotKey` is claimed by the Windows 11 Snipping Tool.
-  3. **Event De-duplication:** 250ms timestamp debounce guard (`TriggerActionDebounced`) ensures single activation if both engines receive the keystroke.
-
-**Commit:** `feat(core): implement hybrid hotkey engine to bypass UIPI on elevated windows (#18)`
-
----
-
-## Issue #19: [Core/Elevation] Add optional 'Run with Highest Privileges' via Windows Task Scheduler for zero-UAC elevated autostart
-
-**Labels:** `enhancement`, `core`, `security`, `ux`
-**Status:** `Planned (v1.2.0)`
-
-### Description
-Some power users require `dsnap` to run continuously with full Administrator privileges to capture deep hardware diagnostic tools and full-screen games without restrictions, but Windows blocks elevated programs in standard `Run` registry keys during login.
-
-### Architectural Solution
-- Follow the Microsoft PowerToys and AutoHotkey distribution model: maintain default `asInvoker` execution.
-- Add an optional setting `Run with Administrator Privileges` in the tray menu that configures a scheduled task via Windows Task Scheduler (`\dsnap_Autostart_Admin`) with `/RL HIGHEST`.
-- Allows `dsnap` to start automatically on login with full elevation without displaying UAC consent dialogs.
-
----
-
-## Issue #20: [i18n/Build] Fix UTF-8 source encoding mojibake in MSVC compiler and refine tray menu typography
-
-**Labels:** `bug`, `i18n`, `ui`, `build`
-**Status:** `Closed (v1.1.1)`
-
-### Description
-When running `dsnap`, context menu and submenu strings were corrupted into ANSI mojibake characters (`Tiáº¿ng Viá»‡t`, `ç®€ä½“ä¸­æ–‡`, `ðŸ"`).
-
-### Root Cause
-MSVC (`cl.exe`) in CI defaults to the host machine's ANSI code page (Windows-1252 / CP1252) when compiling source files lacking a UTF-8 BOM and without the `/utf-8` compiler flag. Multi-byte UTF-8 sequences were misparsed as single CP1252 bytes before being widened to `wchar_t` (`L"..."`).
-
-### Architectural Solution
-- Added `/utf-8` compiler flag to MSVC invocations in CI workflow (`build.yml`) and `build.bat`.
-- Re-encoded internationalized source files (`src/i18n.cpp`, `src/tray.cpp`, `src/overlay.cpp`) with explicit UTF-8 BOM.
-- Polished tray menu typography across English, Vietnamese, Simplified Chinese, Korean, and Japanese to use native clean text without surrogate-pair emoji glitches.
-
-**Commit:** `fix(i18n): resolve UTF-8 mojibake with /utf-8 compiler flag and polish tray typography (#20)`
-
----
-
 ## Issue #17: [i18n] Multi-language localization (English, Vietnamese, Chinese, Korean, Japanese)
 
 **Labels:** `enhancement`, `i18n`, `ui`
-**Status:** `Closed (v1.1.0-dev)`
+**Status:** `Closed (v1.1.0)`
 
 ### Description
 `dsnap` is currently English-only. To provide a seamless localized experience for users globally and across Asia, the application should support the 5 major languages with zero external dependencies.
@@ -430,22 +374,28 @@ Under Windows User Interface Privilege Isolation (UIPI), low-level keyboard hook
   2. **Fallback Low-Level Hook:** Maintain `WH_KEYBOARD_LL` as an active fallback in case `RegisterHotKey` is claimed by the Windows 11 Snipping Tool.
   3. **Event De-duplication:** 250ms timestamp debounce guard (`TriggerActionDebounced`) ensures single activation if both engines receive the keystroke.
 
-**Commit:** `feat(core): implement hybrid hotkey engine to bypass UIPI on elevated windows (#18)`
+**Commit:** `feat: implement hybrid hotkey engine to bypass UIPI and bump to v1.1.0 (#18)`
 
 ---
 
-## Issue #19: [Core/Elevation] Add optional 'Run with Highest Privileges' via Windows Task Scheduler for zero-UAC elevated autostart
+## Issue #19: [Core/Elevation] Implement Task Scheduler XML engine and CLI switches for zero-UAC elevated autostart
 
-**Labels:** `enhancement`, `core`, `security`, `ux`
-**Status:** `Planned (v1.2.0)`
+**Labels:** `enhancement`, `core`, `security`, `windows`
+**Status:** `Closed (v1.1.2)`
 
 ### Description
-Some power users require `dsnap` to run continuously with full Administrator privileges to capture deep hardware diagnostic tools and full-screen games without restrictions, but Windows blocks elevated programs in standard `Run` registry keys during login.
+When a user configures `dsnap` to run with Administrator privileges (`RUNASADMIN`), standard Windows autostart via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` is silently blocked by Windows Shell at logon. Additionally, basic `schtasks /Create /SC ONLOGON` tasks default to blocking execution on laptop battery power (`DisallowStartIfOnBatteries`) and terminating after 72 hours (`ExecutionTimeLimit`).
 
 ### Architectural Solution
-- Follow the Microsoft PowerToys and AutoHotkey distribution model: maintain default `asInvoker` execution.
-- Add an optional setting `Run with Administrator Privileges` in the tray menu that configures a scheduled task via Windows Task Scheduler (`\dsnap_Autostart_Admin`) with `/RL HIGHEST`.
-- Allows `dsnap` to start automatically on login with full elevation without displaying UAC consent dialogs.
+- **Task Scheduler XML 1.2 Engine (`src/config.cpp`):**
+  - Generate Task Scheduler XML with `<RunLevel>HighestAvailable</RunLevel>`, `<LogonType>InteractiveToken</LogonType>`, `<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>`, `<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>`, and `<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>`.
+  - Register `dsnap_Autostart` silently (`CREATE_NO_WINDOW`) and store `AutoStartTask=1` in `HKCU\Software\dsnap` for instant 0.01ms tray menu state queries.
+- **One-Shot CLI Switches (`src/main.cpp`):**
+  - Handle `--register-admin-task` and `--unregister-admin-task` prior to the Single-Instance Mutex check for seamless invocation by the installer or elevated helper processes.
+- **Tray Menu Synchronization:**
+  - Refactor `IsAutoStartEnabled()` and `SetAutoStart(bool)` to automatically switch between Registry `Run` and Task Scheduler depending on elevation configuration.
+
+**Commit:** `feat(installer,core): add Run as Administrator setup task and zero-UAC Task Scheduler autostart (#19, #21)`
 
 ---
 
@@ -465,4 +415,27 @@ MSVC (`cl.exe`) in CI defaults to the host machine's ANSI code page (Windows-125
 - Re-encoded internationalized source files (`src/i18n.cpp`, `src/tray.cpp`, `src/overlay.cpp`) with explicit UTF-8 BOM.
 - Polished tray menu typography across English, Vietnamese, Simplified Chinese, Korean, and Japanese to use native clean text without surrogate-pair emoji glitches.
 
-**Commit:** `fix(i18n): resolve UTF-8 mojibake with /utf-8 compiler flag and polish tray typography (#20)`
+**Commit:** `fix(i18n): resolve UTF-8 mojibake with /utf-8 compiler flag and bump to v1.1.1 (#20)`
+
+---
+
+## Issue #21: [Installer] Add 'Always run dsnap as Administrator' task option in Inno Setup wizard
+
+**Labels:** `installer`, `enhancement`, `security`, `ux`
+**Status:** `Closed (v1.1.2)`
+
+### Description
+Provide a direct checkbox option in the Inno Setup installation wizard (`Select Additional Tasks` page) allowing users to configure `dsnap` to always run with full Administrator privileges (`RUNASADMIN`) without manually editing executable properties after installation.
+
+### Architectural Solution
+- **Wizard Task Checkbox (`installer/dsnap.iss`):**
+  - Add `runasadmin` task: `"Always run dsnap as Administrator (Full privileges for elevated apps & games)"` (unchecked by default).
+- **Windows Compatibility Layer (`AppCompatFlags\Layers`):**
+  - When selected, write `~ RUNASADMIN` for `{app}\dsnap.exe` under `HKA\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers`.
+  - Automatically clean up the flag if unchecked on reinstall or during uninstallation.
+- **Smart Autostart Hand-off (`CurStepChanged`):**
+  - When both `autostart` and `runasadmin` are selected, remove standard `HKCU\...\Run` entry and invoke `dsnap.exe --register-admin-task` to register zero-UAC elevated logon startup via Windows Task Scheduler.
+  - Add `shellexec` flag to `[Run]` postinstall entry so `dsnap.exe` launches with Administrator rights immediately after setup.
+  - Remove `dsnap_Autostart` scheduled task in `InitializeUninstall()`.
+
+**Commit:** `feat(installer,core): add Run as Administrator setup task and zero-UAC Task Scheduler autostart (#19, #21)`

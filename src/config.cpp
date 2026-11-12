@@ -13,7 +13,168 @@ bool IsFFmpegDownloading() {
     return g_isDownloadingFFmpeg.load();
 }
 
+bool IsProcessElevated() {
+    BOOL isElevated = FALSE;
+    HANDLE hToken = NULL;
+    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+        TOKEN_ELEVATION elevation;
+        DWORD cbSize = sizeof(TOKEN_ELEVATION);
+        if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &cbSize)) {
+            isElevated = elevation.TokenIsElevated;
+        }
+        CloseHandle(hToken);
+    }
+    return isElevated != FALSE;
+}
+
+bool IsRunAsAdminConfigured() {
+    if (IsProcessElevated()) return true;
+
+    wchar_t exePath[MAX_PATH] = { 0 };
+    GetModuleFileNameW(NULL, exePath, MAX_PATH);
+
+    const HKEY roots[] = { HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE };
+    for (HKEY root : roots) {
+        HKEY hKey;
+        if (RegOpenKeyExW(root, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            wchar_t val[128] = { 0 };
+            DWORD size = sizeof(val);
+            DWORD type = REG_SZ;
+            if (RegQueryValueExW(hKey, exePath, NULL, &type, (LPBYTE)val, &size) == ERROR_SUCCESS) {
+                RegCloseKey(hKey);
+                if (wcsstr(val, L"RUNASADMIN") != NULL) {
+                    return true;
+                }
+            } else {
+                RegCloseKey(hKey);
+            }
+        }
+    }
+    return false;
+}
+
+bool IsAdminAutoStartTaskEnabled() {
+    HKEY hKey;
+    DWORD val = 0;
+    DWORD size = sizeof(val);
+    DWORD type = REG_DWORD;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, L"AutoStartTask", NULL, &type, (LPBYTE)&val, &size) == ERROR_SUCCESS) {
+            RegCloseKey(hKey);
+            return (val != 0);
+        }
+        RegCloseKey(hKey);
+    }
+    return false;
+}
+
+static bool RunProcessHidden(const std::wstring& cmdLine) {
+    STARTUPINFOW si = { sizeof(si) };
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    PROCESS_INFORMATION pi = { 0 };
+
+    std::wstring mutableCmd = cmdLine;
+    if (CreateProcessW(NULL, &mutableCmd[0], NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+        WaitForSingleObject(pi.hProcess, 5000);
+        DWORD exitCode = 1;
+        GetExitCodeProcess(pi.hProcess, &exitCode);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return (exitCode == 0);
+    }
+    return false;
+}
+
+bool SetAdminAutoStartTask(bool enable) {
+    if (enable) {
+        wchar_t exePath[MAX_PATH] = { 0 };
+        GetModuleFileNameW(NULL, exePath, MAX_PATH);
+
+        wchar_t tempDir[MAX_PATH] = { 0 };
+        GetTempPathW(MAX_PATH, tempDir);
+        std::wstring xmlPath = std::wstring(tempDir) + L"dsnap_autostart_task.xml";
+
+        std::wstring xml =
+            L"<?xml version=\"1.0\" encoding=\"UTF-16\"?>\r\n"
+            L"<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\r\n"
+            L"  <Triggers>\r\n"
+            L"    <LogonTrigger>\r\n"
+            L"      <Enabled>true</Enabled>\r\n"
+            L"    </LogonTrigger>\r\n"
+            L"  </Triggers>\r\n"
+            L"  <Principals>\r\n"
+            L"    <Principal id=\"Author\">\r\n"
+            L"      <LogonType>InteractiveToken</LogonType>\r\n"
+            L"      <RunLevel>HighestAvailable</RunLevel>\r\n"
+            L"    </Principal>\r\n"
+            L"  </Principals>\r\n"
+            L"  <Settings>\r\n"
+            L"    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\r\n"
+            L"    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>\r\n"
+            L"    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>\r\n"
+            L"    <AllowHardTerminate>true</AllowHardTerminate>\r\n"
+            L"    <StartWhenAvailable>true</StartWhenAvailable>\r\n"
+            L"    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>\r\n"
+            L"    <AllowStartOnDemand>true</AllowStartOnDemand>\r\n"
+            L"    <Enabled>true</Enabled>\r\n"
+            L"    <Hidden>false</Hidden>\r\n"
+            L"    <RunOnlyIfIdle>false</RunOnlyIfIdle>\r\n"
+            L"    <WakeToRun>false</WakeToRun>\r\n"
+            L"    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>\r\n"
+            L"    <Priority>7</Priority>\r\n"
+            L"  </Settings>\r\n"
+            L"  <Actions Context=\"Author\">\r\n"
+            L"    <Exec>\r\n"
+            L"      <Command>\"" + std::wstring(exePath) + L"\"</Command>\r\n"
+            L"    </Exec>\r\n"
+            L"  </Actions>\r\n"
+            L"</Task>\r\n";
+
+        HANDLE hFile = CreateFileW(xmlPath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hFile != INVALID_HANDLE_VALUE) {
+            DWORD written = 0;
+            const WORD bom = 0xFEFF;
+            WriteFile(hFile, &bom, sizeof(bom), &written, NULL);
+            WriteFile(hFile, xml.c_str(), (DWORD)(xml.length() * sizeof(wchar_t)), &written, NULL);
+            CloseHandle(hFile);
+        }
+
+        std::wstring cmd = L"schtasks.exe /Create /TN \"dsnap_Autostart\" /XML \"" + xmlPath + L"\" /F";
+        bool ok = RunProcessHidden(cmd);
+        DeleteFileW(xmlPath.c_str());
+
+        if (ok) {
+            HKEY hKey;
+            DWORD val = 1;
+            if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+                RegSetValueExW(hKey, L"AutoStartTask", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
+                RegCloseKey(hKey);
+            }
+            // Remove standard HKCU Run value to prevent Windows blocking duplicate entry on logon
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, REG_KEY, 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
+                RegDeleteValueW(hKey, APP_NAME);
+                RegCloseKey(hKey);
+            }
+        }
+        return ok;
+    } else {
+        std::wstring cmd = L"schtasks.exe /Delete /TN \"dsnap_Autostart\" /F";
+        RunProcessHidden(cmd);
+
+        HKEY hKey;
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
+            RegDeleteValueW(hKey, L"AutoStartTask");
+            RegCloseKey(hKey);
+        }
+        return true;
+    }
+}
+
 bool IsAutoStartEnabled() {
+    if (IsAdminAutoStartTaskEnabled()) {
+        return true;
+    }
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_CURRENT_USER, REG_KEY, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
         wchar_t path[MAX_PATH];
@@ -27,6 +188,37 @@ bool IsAutoStartEnabled() {
 }
 
 void SetAutoStart(bool enable) {
+    if (enable && IsRunAsAdminConfigured()) {
+        if (IsProcessElevated()) {
+            SetAdminAutoStartTask(true);
+        } else {
+            wchar_t path[MAX_PATH];
+            GetModuleFileNameW(NULL, path, MAX_PATH);
+            SHELLEXECUTEINFOW sei = { sizeof(sei) };
+            sei.lpVerb = L"runas";
+            sei.lpFile = path;
+            sei.lpParameters = L"--register-admin-task";
+            sei.nShow = SW_HIDE;
+            ShellExecuteExW(&sei);
+        }
+        return;
+    }
+
+    if (!enable && IsAdminAutoStartTaskEnabled()) {
+        if (IsProcessElevated()) {
+            SetAdminAutoStartTask(false);
+        } else {
+            wchar_t path[MAX_PATH];
+            GetModuleFileNameW(NULL, path, MAX_PATH);
+            SHELLEXECUTEINFOW sei = { sizeof(sei) };
+            sei.lpVerb = L"runas";
+            sei.lpFile = path;
+            sei.lpParameters = L"--unregister-admin-task";
+            sei.nShow = SW_HIDE;
+            ShellExecuteExW(&sei);
+        }
+    }
+
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_CURRENT_USER, REG_KEY, 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
         if (enable) {

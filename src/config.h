@@ -8,6 +8,11 @@ extern bool g_highlightClicks;
 bool IsAutoStartEnabled();
 void SetAutoStart(bool enable);
 
+bool IsProcessElevated();
+bool IsRunAsAdminConfigured();
+bool IsAdminAutoStartTaskEnabled();
+bool SetAdminAutoStartTask(bool enable);
+
 bool LoadAudioSetting();
 void SaveAudioSetting(bool enable);
 

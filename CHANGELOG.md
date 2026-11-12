@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.1.2] - 2026-11-13
+
+### Added
+- **Installer "Always Run as Administrator" Option (Issue #21):** Added a privilege checkbox in the Inno Setup wizard (`Select Additional Tasks`) that configures Windows Compatibility Layer (`AppCompatFlags\Layers` `~ RUNASADMIN`) and launches `dsnap` elevated after setup.
+- **Zero-UAC Elevated Autostart via Task Scheduler (Issue #19):** Implemented Task Scheduler XML 1.2 engine (`dsnap_Autostart` with `HighestAvailable`, `InteractiveToken`, `DisallowStartIfOnBatteries=false`, and unlimited execution time `PT0S`) plus `--register-admin-task` / `--unregister-admin-task` CLI switches so elevated installations start automatically with Windows without UAC prompts or laptop battery restrictions.
+- **Unified Autostart Synchronization:** Synchronized the system tray `Start with Windows` toggle across both standard Registry `Run` and elevated Task Scheduler modes.
+
+---
+
 ## [1.1.1] - 2026-11-12
 
 ### Fixed

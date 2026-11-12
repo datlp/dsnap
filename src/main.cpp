@@ -9,6 +9,25 @@
 #include "i18n.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
+    // Handle one-shot CLI flags for Scheduled Task configuration (used by Installer & Elevation)
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv) {
+        for (int i = 1; i < argc; ++i) {
+            if (_wcsicmp(argv[i], L"--register-admin-task") == 0) {
+                bool ok = SetAdminAutoStartTask(true);
+                LocalFree(argv);
+                return ok ? 0 : 1;
+            }
+            if (_wcsicmp(argv[i], L"--unregister-admin-task") == 0) {
+                SetAdminAutoStartTask(false);
+                LocalFree(argv);
+                return 0;
+            }
+        }
+        LocalFree(argv);
+    }
+
     // 0. Strict Single-Instance Lifecycle Check
     HWND hExistingWnd = FindWindowW(BG_CLASS, L"dsnap_bg");
     if (hExistingWnd) {

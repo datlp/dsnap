@@ -6,7 +6,7 @@
 
 #define MyAppName "dsnap"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.1.1"
+  #define MyAppVersion "1.1.2"
 #endif
 #define MyAppPublisher "datlp"
 #define MyAppURL "https://github.com/datlp/dsnap"
@@ -56,6 +56,7 @@ Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "autostart"; Description: "Start dsnap automatically when Windows starts"; GroupDescription: "Startup options:"
+Name: "runasadmin"; Description: "Always run dsnap as Administrator (Full privileges for elevated apps & games)"; GroupDescription: "Privilege options:"; Flags: unchecked
 
 [Files]
 Source: "..\dsnap.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -69,12 +70,20 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFile
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"
 
 [Registry]
-; Autostart task (Runs only for current user when selected)
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: autostart; Flags: uninsdeletevalue
+; Standard autostart task (when Run as Administrator is NOT selected)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: autostart and not runasadmin; Flags: uninsdeletevalue
+; Remove standard HKCU Run value when Run as Administrator IS selected (uses Task Scheduler instead)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "{#MyAppName}"; Tasks: autostart and runasadmin; Flags: deletevalue
+; Run as Administrator compatibility layer
+Root: HKA; Subkey: "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"; ValueType: string; ValueName: "{app}\{#MyAppExeName}"; ValueData: "~ RUNASADMIN"; Tasks: runasadmin; Flags: uninsdeletevalue
+; Clean up compatibility layer if unchecked on reinstall
+Root: HKA; Subkey: "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"; ValueType: none; ValueName: "{app}\{#MyAppExeName}"; Tasks: not runasadmin; Flags: deletevalue
+; Clean up AutoStartTask flag on uninstall
+Root: HKCU; Subkey: "Software\dsnap"; ValueType: none; ValueName: "AutoStartTask"; Flags: uninsdeletevalue
 
 [Run]
 ; Option to launch dsnap immediately after installation
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent shellexec
 
 [Code]
 // Helper to terminate running dsnap before updating or uninstalling
@@ -86,11 +95,35 @@ begin
   Exec('taskkill.exe', '/F /IM dsnap.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+  AppExe: String;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    AppExe := ExpandConstant('{app}\{#MyAppExeName}');
+    if WizardIsTaskSelected('runasadmin') and WizardIsTaskSelected('autostart') then
+    begin
+      if IsAdminInstallMode then
+        Exec(AppExe, '--register-admin-task', '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
+      else
+        ShellExec('runas', AppExe, '--register-admin-task', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end
+    else
+    begin
+      if IsAdminInstallMode then
+        Exec(AppExe, '--unregister-admin-task', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end;
+  end;
+end;
+
 function InitializeUninstall(): Boolean;
 var
   ResultCode: Integer;
 begin
   Result := True;
   Exec('taskkill.exe', '/F /IM dsnap.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('schtasks.exe', '/Delete /TN "dsnap_Autostart" /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
