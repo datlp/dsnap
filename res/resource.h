@@ -17,3 +17,13 @@
 #define IDM_LANG_ZH           1013
 #define IDM_LANG_KO           1014
 #define IDM_LANG_JA           1015
+
+#define IDM_TOGGLE_MIC        1016
+
+#define IDM_AUDIO_OUT_DEFAULT 1200
+#define IDM_AUDIO_OUT_BASE    1201
+#define IDM_AUDIO_OUT_MAX     1249
+
+#define IDM_AUDIO_IN_DEFAULT  1250
+#define IDM_AUDIO_IN_BASE     1251
+#define IDM_AUDIO_IN_MAX      1299

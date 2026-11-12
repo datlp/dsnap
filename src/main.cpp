@@ -48,6 +48,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     EnableDpiAwareness();
     g_recordAudio = LoadAudioSetting();
+    g_recordMic = LoadMicSetting();
+    LoadAudioDevicesSetting();
 
     // 2. Load NTDLL function pointers for process suspension (Pause / Resume recording)
     InitRecorderNTDLL();

@@ -439,3 +439,29 @@ Provide a direct checkbox option in the Inno Setup installation wizard (`Select 
   - Remove `dsnap_Autostart` scheduled task in `InitializeUninstall()`.
 
 **Commit:** `feat(installer,core): add Run as Administrator setup task and zero-UAC Task Scheduler autostart (#19, #21)`
+
+---
+
+## Issue #22: [Audio/Mixer] Implement Multi-Device WASAPI Loopback + Microphone Audio Mixer and Device Selector Submenu
+
+**Labels:** `enhancement`, `audio`, `ui`, `core`
+**Milestone:** `v1.2.0 - Multi-Device Audio Mixer & UX`
+**Status:** `Closed (v1.2.0)`
+
+### Description
+Modern Windows setups frequently involve multiple active audio endpoints simultaneously (e.g., Desktop Speakers + USB/Bluetooth Headphones, or Built-in Mic + Headset Mic + Webcam Mic). Previously, `dsnap` only captured the single default `eRender` output endpoint in loopback mode and did not support microphone input or multi-endpoint selection.
+
+### Architectural Solution
+- **Tray Context Menu (Option B - `src/tray.cpp`, `res/resource.h`):**
+  - Retained quick main menu checkboxes: `[✓] Record System Audio` (`IDM_TOGGLE_AUDIO`) and `[✓] Record Microphone` (`IDM_TOGGLE_MIC`).
+  - Added dynamic `Audio Devices >` submenu enumerating active `eRender` (Output) and `eCapture` (Input) endpoints on menu open using `IMMDeviceEnumerator::EnumAudioEndpoints` and `PKEY_Device_FriendlyName`.
+  - Supports choosing `Default System Output` / `Default Microphone` or multi-selecting any combination of specific Speakers, Headphones, and Microphones simultaneously.
+- **Multi-Stream WASAPI Auto-Convert & QPC Real-Time Mixer (`src/audio.h`, `src/audio.cpp`):**
+  - Initializes each selected `IAudioClient` in `AUDCLNT_SHAREMODE_SHARED` with `AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY` at a unified target format of **48,000 Hz, 2-channel Stereo, 32-bit IEEE Float** (`f32le`), with automatic mono-to-stereo upmix fallback.
+  - Uses a `QueryPerformanceCounter` (QPC) hardware wall-clock pacer (10ms = 480 stereo frames) with per-stream FIFO buffers and `[-1.0f, 1.0f]` soft-clipping to mix all active output and microphone streams into a single continuous pipe (`\\.\pipe\dsnap_audio_<pid>`) for FFmpeg.
+- **Persistence & 5-Language Localization (`src/config.cpp`, `src/i18n.cpp`, `dsnap.ini.example`):**
+  - Persists `RecordMic`, `OutputDevices`, and `InputDevices` across Windows Registry (`HKCU\Software\dsnap`) and Portable Mode (`dsnap.ini`).
+  - Added localized strings across English, Vietnamese, Simplified Chinese, Korean, and Japanese (`UTF-8 with BOM`).
+
+**Commit:** `feat(audio,ui): implement multi-device WASAPI loopback + microphone mixer and device selector submenu (#22)`
+

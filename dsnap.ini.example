@@ -7,6 +7,13 @@
 ; Record desktop system audio in recordings (0 = Disabled, 1 = Enabled)
 RecordAudio=0
 
+; Record microphone audio in recordings (0 = Disabled, 1 = Enabled)
+RecordMic=0
+
+; Pipe-separated WASAPI Endpoint IDs (leave empty for Default System Output / Default Microphone)
+OutputDevices=
+InputDevices=
+
 ; Visual mouse click ripple animations for screencasting (0 = Disabled, 1 = Enabled)
 HighlightClicks=1
 

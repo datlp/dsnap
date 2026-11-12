@@ -28,8 +28,8 @@
 
 * **⚡ Ultra-lightweight & Native:** Zero .NET Runtime, zero Electron bloat, zero external DLL dependencies. Single standalone executable under 450 KB with ~8 MB idle RAM footprint.
 * **📸 Freeze Desktop Snapshot:** Snapshots the desktop into memory in under 2ms via `SRCCOPY | CAPTUREBLT`. Reliably captures right-click context menus, tooltips, flyouts, and start menu without dismissing them.
-* **🎙️ Native WASAPI Loopback Audio:** Direct playback stream recording from Windows Core Audio. Captures crystal-clear sound from YouTube, Spotify, games, and meetings with zero stereo mix or virtual cable setup.
-* **🎬 Click-Through Border & Controls:** Recording border is click-transparent (`WS_EX_TRANSPARENT`) and hidden from the video via `WDA_EXCLUDEFROMCAPTURE`. Floating toolbar provides live timer, pause, resume, and instant cancel.
+* **🎙️ Multi-Device WASAPI Audio & Microphone Mixer:** Direct playback loopback and microphone recording from Windows Core Audio. Simultaneously capture and mix multiple Speakers, Headphones, and Microphones at 48kHz Stereo Float32 with zero stereo mix or virtual cable setup.
+* **🎬 Click-Through Border, Ripple FX & Controls:** Recording border is click-transparent (`WS_EX_TRANSPARENT`) and hidden from the video via `WDA_EXCLUDEFROMCAPTURE`. Optional 60 FPS mouse click ripple animations and floating toolbar with live timer, pause, resume, and instant cancel.
 * **💾 True Zero-Footprint Portable Mode:** Place `dsnap.ini` next to `dsnap.exe` (or launch with `--portable`) to store all settings and captures locally without touching the Windows Registry.
 
 ---
@@ -43,12 +43,12 @@ winget install datlp.dsnap
 
 ### Option 2: Setup Wizard (Recommended)
 Download and run the dual-mode Inno Setup installer:
-* [⬇️ **Download dsnap-v1.0.2-setup.exe**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.2-setup.exe) (~2.2 MB)
-* Supports **All Users** (System-wide in `C:\Program Files\dsnap` with UAC) and **Current User** (Non-admin in `%LocalAppData%\Programs\dsnap`).
+* [⬇️ **Download dsnap-v1.2.0-setup.exe**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.2.0-setup.exe) (~2.2 MB)
+* Supports **All Users** (System-wide in `C:\Program Files\dsnap` with UAC), **Current User** (Non-admin in `%LocalAppData%\Programs\dsnap`), and optional **Always run as Administrator** with zero-UAC Task Scheduler autostart.
 
 ### Option 3: Portable Edition (No Install Required)
-* [⚡ **dsnap-v1.0.2-windows-x64.exe**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.2-windows-x64.exe) (~436 KB standalone executable)
-* [📦 **dsnap-v1.0.2-windows-x64.zip**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.0.2-windows-x64.zip) (~200 KB complete package with license)
+* [⚡ **dsnap-v1.2.0-windows-x64.exe**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.2.0-windows-x64.exe) (~476 KB standalone executable)
+* [📦 **dsnap-v1.2.0-windows-x64.zip**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.2.0-windows-x64.zip) (~220 KB complete package with license & `dsnap.ini.example`)
 * [🛡️ **SHA256SUMS.txt**](https://github.com/datlp/dsnap/releases/latest/download/SHA256SUMS.txt) (Cryptographic verification checksums)
 
 ---
@@ -73,8 +73,12 @@ Right-click the camera viewfinder icon in the system notification area to access
 * 🎥 **Record Screen** (`Shift + PrtScn`)
 * 📁 **Open Screenshots Folder**
 * 📁 **Open Recordings Folder**
-* 🎙️ **Record System Audio** *(Toggles WASAPI Loopback on/off)*
-* **Start with Windows** *(Toggles autostart on user login)*
+* 🔊 **Record System Audio** *(Toggles WASAPI Output Loopback on/off)*
+* 🎙️ **Record Microphone** *(Toggles Microphone capture on/off)*
+* 🎧 **Audio Devices >** *(Select Default or multiple Speakers, Headphones & Microphones)*
+* ✨ **Highlight Mouse Clicks** *(Toggles 60 FPS click ripple animations)*
+* 🚀 **Start with Windows** *(Toggles Registry or zero-UAC Task Scheduler autostart)*
+* 🌐 **Language >** *(Auto, English, Tiếng Việt, 简体中文, 한국어, 日本語)*
 * **Exit** *(Terminates application and active recordings cleanly)*
 
 ---

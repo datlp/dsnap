@@ -1,4 +1,4 @@
-﻿#include "tray.h"
+#include "tray.h"
 #include "config.h"
 #include "capture.h"
 #include "overlay.h"
@@ -6,8 +6,11 @@
 #include "click_effect.h"
 #include "i18n.h"
 #include "hotkey.h"
+#include "audio.h"
 
 NOTIFYICONDATAW g_nid = { 0 };
+static std::vector<AudioDeviceInfo> s_cachedOutputDevices;
+static std::vector<AudioDeviceInfo> s_cachedInputDevices;
 
 void UpdateTrayTip(const wchar_t* tip) {
     wcsncpy_s(g_nid.szTip, tip, _countof(g_nid.szTip) - 1);
@@ -28,6 +31,48 @@ void ShowContextMenu(HWND hWnd) {
 
     UINT audioFlag = g_recordAudio ? MF_CHECKED : MF_UNCHECKED;
     AppendMenuW(hMenu, MF_STRING | audioFlag, IDM_TOGGLE_AUDIO, Tr(StringId::MenuToggleAudio));
+
+    UINT micFlag = g_recordMic ? MF_CHECKED : MF_UNCHECKED;
+    AppendMenuW(hMenu, MF_STRING | micFlag, IDM_TOGGLE_MIC, Tr(StringId::MenuToggleMic));
+
+    // Audio Devices Submenu (Multi-Output Loopback + Multi-Microphone Selection)
+    HMENU hAudioMenu = CreatePopupMenu();
+    s_cachedOutputDevices = EnumAudioOutputDevices();
+    s_cachedInputDevices = EnumAudioInputDevices();
+
+    AppendMenuW(hAudioMenu, MF_STRING | MF_GRAYED, 0, Tr(StringId::MenuAudioOutHeader));
+    UINT defOutCheck = g_selectedOutputDevices.empty() ? MF_CHECKED : MF_UNCHECKED;
+    AppendMenuW(hAudioMenu, MF_STRING | defOutCheck, IDM_AUDIO_OUT_DEFAULT, Tr(StringId::MenuAudioDefaultOut));
+    if (s_cachedOutputDevices.empty()) {
+        AppendMenuW(hAudioMenu, MF_STRING | MF_GRAYED, 0, Tr(StringId::MenuAudioNone));
+    } else {
+        size_t maxOut = (std::min)(s_cachedOutputDevices.size(), (size_t)(IDM_AUDIO_OUT_MAX - IDM_AUDIO_OUT_BASE + 1));
+        for (size_t i = 0; i < maxOut; ++i) {
+            UINT check = IsOutputDeviceSelected(s_cachedOutputDevices[i].id) ? MF_CHECKED : MF_UNCHECKED;
+            std::wstring label = s_cachedOutputDevices[i].name;
+            if (s_cachedOutputDevices[i].isDefault) label += L" *";
+            AppendMenuW(hAudioMenu, MF_STRING | check, IDM_AUDIO_OUT_BASE + (UINT)i, label.c_str());
+        }
+    }
+
+    AppendMenuW(hAudioMenu, MF_SEPARATOR, 0, NULL);
+    AppendMenuW(hAudioMenu, MF_STRING | MF_GRAYED, 0, Tr(StringId::MenuAudioInHeader));
+    UINT defInCheck = g_selectedInputDevices.empty() ? MF_CHECKED : MF_UNCHECKED;
+    AppendMenuW(hAudioMenu, MF_STRING | defInCheck, IDM_AUDIO_IN_DEFAULT, Tr(StringId::MenuAudioDefaultIn));
+    if (s_cachedInputDevices.empty()) {
+        AppendMenuW(hAudioMenu, MF_STRING | MF_GRAYED, 0, Tr(StringId::MenuAudioNone));
+    } else {
+        size_t maxIn = (std::min)(s_cachedInputDevices.size(), (size_t)(IDM_AUDIO_IN_MAX - IDM_AUDIO_IN_BASE + 1));
+        for (size_t i = 0; i < maxIn; ++i) {
+            UINT check = IsInputDeviceSelected(s_cachedInputDevices[i].id) ? MF_CHECKED : MF_UNCHECKED;
+            std::wstring label = s_cachedInputDevices[i].name;
+            if (s_cachedInputDevices[i].isDefault) label += L" *";
+            AppendMenuW(hAudioMenu, MF_STRING | check, IDM_AUDIO_IN_BASE + (UINT)i, label.c_str());
+        }
+    }
+
+    AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hAudioMenu, Tr(StringId::MenuAudioDevices));
+    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
 
     UINT clickFlag = g_highlightClicks ? MF_CHECKED : MF_UNCHECKED;
     AppendMenuW(hMenu, MF_STRING | clickFlag, IDM_HIGHLIGHT_CLICKS, Tr(StringId::MenuHighlightClicks));
@@ -101,7 +146,31 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         return 0;
     }
     case WM_COMMAND: {
-        switch (LOWORD(wParam)) {
+        UINT cmd = LOWORD(wParam);
+        if (cmd >= IDM_AUDIO_OUT_BASE && cmd <= IDM_AUDIO_OUT_MAX) {
+            size_t idx = (size_t)(cmd - IDM_AUDIO_OUT_BASE);
+            if (idx < s_cachedOutputDevices.size()) {
+                ToggleOutputDeviceSelection(s_cachedOutputDevices[idx].id);
+                if (!g_selectedOutputDevices.empty() && !g_recordAudio) {
+                    g_recordAudio = true;
+                    SaveAudioSetting(true);
+                }
+            }
+            return 0;
+        }
+        if (cmd >= IDM_AUDIO_IN_BASE && cmd <= IDM_AUDIO_IN_MAX) {
+            size_t idx = (size_t)(cmd - IDM_AUDIO_IN_BASE);
+            if (idx < s_cachedInputDevices.size()) {
+                ToggleInputDeviceSelection(s_cachedInputDevices[idx].id);
+                if (!g_selectedInputDevices.empty() && !g_recordMic) {
+                    g_recordMic = true;
+                    SaveMicSetting(true);
+                }
+            }
+            return 0;
+        }
+
+        switch (cmd) {
         case IDM_CAPTURE_PHOTO:
             PostMessageW(hWnd, WM_DSNAP_TRIGGER, TRIGGER_PHOTO, 0);
             break;
@@ -117,6 +186,24 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case IDM_TOGGLE_AUDIO:
             g_recordAudio = !g_recordAudio;
             SaveAudioSetting(g_recordAudio);
+            break;
+        case IDM_TOGGLE_MIC:
+            g_recordMic = !g_recordMic;
+            SaveMicSetting(g_recordMic);
+            break;
+        case IDM_AUDIO_OUT_DEFAULT:
+            ClearOutputDeviceSelection();
+            if (!g_recordAudio) {
+                g_recordAudio = true;
+                SaveAudioSetting(true);
+            }
+            break;
+        case IDM_AUDIO_IN_DEFAULT:
+            ClearInputDeviceSelection();
+            if (!g_recordMic) {
+                g_recordMic = true;
+                SaveMicSetting(true);
+            }
             break;
         case IDM_HIGHLIGHT_CLICKS:
             g_highlightClicks = !g_highlightClicks;

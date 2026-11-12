@@ -1,8 +1,7 @@
 #pragma once
 
 #define DSNAP_VERSION_MAJOR 1
-#define DSNAP_VERSION_MINOR 1
-#define DSNAP_VERSION_PATCH 2
-#define DSNAP_VERSION_STR   "1.1.2"
-#define DSNAP_VERSION_RC    1,1,2,0
-
+#define DSNAP_VERSION_MINOR 2
+#define DSNAP_VERSION_PATCH 0
+#define DSNAP_VERSION_STR   "1.2.0"
+#define DSNAP_VERSION_RC    1,2,0,0

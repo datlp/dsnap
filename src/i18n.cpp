@@ -1,4 +1,4 @@
-﻿#include "i18n.h"
+#include "i18n.h"
 #include <windows.h>
 
 static Language s_currentLanguage = Language::English;
@@ -66,6 +66,13 @@ const wchar_t* Tr(StringId id) {
         case StringId::MenuOpenScreenshots:      return L"Mở thư mục ảnh chụp";
         case StringId::MenuOpenCaptures:         return L"Mở thư mục video quay";
         case StringId::MenuToggleAudio:          return L"Ghi âm thanh hệ thống";
+        case StringId::MenuToggleMic:            return L"Ghi âm Microphone";
+        case StringId::MenuAudioDevices:         return L"Thiết bị âm thanh";
+        case StringId::MenuAudioOutHeader:       return L"Đầu ra (Loa / Tai nghe)";
+        case StringId::MenuAudioInHeader:        return L"Đầu vào (Microphone)";
+        case StringId::MenuAudioDefaultOut:      return L"Thiết bị phát mặc định";
+        case StringId::MenuAudioDefaultIn:       return L"Microphone mặc định";
+        case StringId::MenuAudioNone:            return L"(Không tìm thấy thiết bị)";
         case StringId::MenuHighlightClicks:      return L"Hiệu ứng click chuột";
         case StringId::MenuStartWithWindows:     return L"Khởi động cùng Windows";
         case StringId::MenuLanguage:             return L"Ngôn ngữ (Language)";
@@ -87,6 +94,13 @@ const wchar_t* Tr(StringId id) {
         case StringId::MenuOpenScreenshots:      return L"打开截图文件夹";
         case StringId::MenuOpenCaptures:         return L"打开录制文件夹";
         case StringId::MenuToggleAudio:          return L"录制系统声音";
+        case StringId::MenuToggleMic:            return L"录制麦克风";
+        case StringId::MenuAudioDevices:         return L"音频设备";
+        case StringId::MenuAudioOutHeader:       return L"输出设备 (扬声器 / 耳机)";
+        case StringId::MenuAudioInHeader:        return L"输入设备 (麦克风)";
+        case StringId::MenuAudioDefaultOut:      return L"默认系统输出";
+        case StringId::MenuAudioDefaultIn:       return L"默认麦克风";
+        case StringId::MenuAudioNone:            return L"(未找到活动设备)";
         case StringId::MenuHighlightClicks:      return L"鼠标点击高亮效果";
         case StringId::MenuStartWithWindows:     return L"随 Windows 启动";
         case StringId::MenuLanguage:             return L"语言 (Language)";
@@ -108,6 +122,13 @@ const wchar_t* Tr(StringId id) {
         case StringId::MenuOpenScreenshots:      return L"스크린샷 폴더 열기";
         case StringId::MenuOpenCaptures:         return L"녹화 폴더 열기";
         case StringId::MenuToggleAudio:          return L"시스템 오디오 녹음";
+        case StringId::MenuToggleMic:            return L"마이크 녹음";
+        case StringId::MenuAudioDevices:         return L"오디오 장치";
+        case StringId::MenuAudioOutHeader:       return L"출력 장치 (스피커 / 헤드폰)";
+        case StringId::MenuAudioInHeader:        return L"입력 장치 (마이크)";
+        case StringId::MenuAudioDefaultOut:      return L"기본 시스템 출력";
+        case StringId::MenuAudioDefaultIn:       return L"기본 마이크";
+        case StringId::MenuAudioNone:            return L"(활성 장치 없음)";
         case StringId::MenuHighlightClicks:      return L"마우스 클릭 효과 표시";
         case StringId::MenuStartWithWindows:     return L"Windows 시작 시 실행";
         case StringId::MenuLanguage:             return L"언어 (Language)";
@@ -129,6 +150,13 @@ const wchar_t* Tr(StringId id) {
         case StringId::MenuOpenScreenshots:      return L"スクリーンショットフォルダを開く";
         case StringId::MenuOpenCaptures:         return L"録画フォルダを開く";
         case StringId::MenuToggleAudio:          return L"システム音声を録音";
+        case StringId::MenuToggleMic:            return L"マイクを録音";
+        case StringId::MenuAudioDevices:         return L"オーディオデバイス";
+        case StringId::MenuAudioOutHeader:       return L"出力デバイス (スピーカー / ヘッドホン)";
+        case StringId::MenuAudioInHeader:        return L"入力デバイス (マイク)";
+        case StringId::MenuAudioDefaultOut:      return L"既定のシステム出力";
+        case StringId::MenuAudioDefaultIn:       return L"既定のマイク";
+        case StringId::MenuAudioNone:            return L"(有効なデバイスがありません)";
         case StringId::MenuHighlightClicks:      return L"マウスクリック効果を表示";
         case StringId::MenuStartWithWindows:     return L"Windows 起動時に実行";
         case StringId::MenuLanguage:             return L"言語 (Language)";
@@ -151,6 +179,13 @@ const wchar_t* Tr(StringId id) {
         case StringId::MenuOpenScreenshots:      return L"Open Screenshots Folder";
         case StringId::MenuOpenCaptures:         return L"Open Recordings Folder";
         case StringId::MenuToggleAudio:          return L"Record System Audio";
+        case StringId::MenuToggleMic:            return L"Record Microphone";
+        case StringId::MenuAudioDevices:         return L"Audio Devices";
+        case StringId::MenuAudioOutHeader:       return L"Output (Speakers / Headphones)";
+        case StringId::MenuAudioInHeader:        return L"Input (Microphones)";
+        case StringId::MenuAudioDefaultOut:      return L"Default System Output";
+        case StringId::MenuAudioDefaultIn:       return L"Default Microphone";
+        case StringId::MenuAudioNone:            return L"(No active devices found)";
         case StringId::MenuHighlightClicks:      return L"Highlight Mouse Clicks";
         case StringId::MenuStartWithWindows:     return L"Start with Windows";
         case StringId::MenuLanguage:             return L"Language";

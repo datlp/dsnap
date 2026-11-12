@@ -234,7 +234,7 @@ void StartRecording(int x, int y, int w, int h) {
         L" -video_size " + std::to_wstring(w) + L"x" + std::to_wstring(h) +
         L" -i desktop";
 
-    if (g_recordAudio) {
+    if (g_recordAudio || g_recordMic) {
         std::wstring audioPipe;
         DWORD sampleRate = 48000;
         WORD channels = 2;
@@ -316,7 +316,7 @@ void StartRecording(int x, int y, int w, int h) {
             ShowWindow(g_hWndRecordingToolbar, SW_SHOWNOACTIVATE);
         }
     } else {
-        if (g_recordAudio) {
+        if (g_recordAudio || g_recordMic) {
             StopSystemAudioLoopback();
         }
         CloseHandle(g_hFFmpegStdinWrite);
@@ -344,9 +344,7 @@ void TogglePauseRecording() {
 
 void StopRecording(bool cancel) {
     if (g_isRecording) {
-        if (g_recordAudio) {
-            StopSystemAudioLoopback();
-        }
+        StopSystemAudioLoopback();
 
         if (g_isPaused && pfnNtResumeProcess && g_ffmpegPi.hProcess) {
             pfnNtResumeProcess(g_ffmpegPi.hProcess);

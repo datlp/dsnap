@@ -5,7 +5,10 @@
 #include <atomic>
 
 bool g_recordAudio = false;
+bool g_recordMic = false;
 bool g_highlightClicks = false;
+std::vector<std::wstring> g_selectedOutputDevices;
+std::vector<std::wstring> g_selectedInputDevices;
 
 static std::atomic<bool> g_isDownloadingFFmpeg(false);
 
@@ -263,6 +266,140 @@ void SaveAudioSetting(bool enable) {
         RegSetValueExW(hKey, L"RecordAudio", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
         RegCloseKey(hKey);
     }
+}
+
+bool LoadMicSetting() {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        return GetPrivateProfileIntW(L"Settings", L"RecordMic", 0, ini.c_str()) != 0;
+    }
+    HKEY hKey;
+    DWORD val = 0;
+    DWORD size = sizeof(val);
+    DWORD type = REG_DWORD;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, L"RecordMic", NULL, &type, (LPBYTE)&val, &size) == ERROR_SUCCESS) {
+            RegCloseKey(hKey);
+            return (val != 0);
+        }
+        RegCloseKey(hKey);
+    }
+    return false;
+}
+
+void SaveMicSetting(bool enable) {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        WritePrivateProfileStringW(L"Settings", L"RecordMic", enable ? L"1" : L"0", ini.c_str());
+        return;
+    }
+    HKEY hKey;
+    DWORD val = enable ? 1 : 0;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKey, L"RecordMic", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
+        RegCloseKey(hKey);
+    }
+}
+
+static std::vector<std::wstring> SplitDeviceIds(const std::wstring& str) {
+    std::vector<std::wstring> result;
+    size_t start = 0;
+    while (start < str.length()) {
+        size_t pos = str.find(L'|', start);
+        std::wstring token = (pos == std::wstring::npos) ? str.substr(start) : str.substr(start, pos - start);
+        if (!token.empty()) {
+            result.push_back(token);
+        }
+        if (pos == std::wstring::npos) break;
+        start = pos + 1;
+    }
+    return result;
+}
+
+static std::wstring JoinDeviceIds(const std::vector<std::wstring>& ids) {
+    std::wstring res;
+    for (size_t i = 0; i < ids.size(); ++i) {
+        if (i > 0) res += L"|";
+        res += ids[i];
+    }
+    return res;
+}
+
+void LoadAudioDevicesSetting() {
+    wchar_t outBuf[2048] = { 0 };
+    wchar_t inBuf[2048] = { 0 };
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        GetPrivateProfileStringW(L"Settings", L"OutputDevices", L"", outBuf, 2048, ini.c_str());
+        GetPrivateProfileStringW(L"Settings", L"InputDevices", L"", inBuf, 2048, ini.c_str());
+    } else {
+        HKEY hKey;
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            DWORD outSize = sizeof(outBuf);
+            DWORD inSize = sizeof(inBuf);
+            DWORD type = REG_SZ;
+            RegQueryValueExW(hKey, L"OutputDevices", NULL, &type, (LPBYTE)outBuf, &outSize);
+            RegQueryValueExW(hKey, L"InputDevices", NULL, &type, (LPBYTE)inBuf, &inSize);
+            RegCloseKey(hKey);
+        }
+    }
+    g_selectedOutputDevices = SplitDeviceIds(outBuf);
+    g_selectedInputDevices = SplitDeviceIds(inBuf);
+}
+
+void SaveAudioDevicesSetting() {
+    std::wstring outStr = JoinDeviceIds(g_selectedOutputDevices);
+    std::wstring inStr = JoinDeviceIds(g_selectedInputDevices);
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        WritePrivateProfileStringW(L"Settings", L"OutputDevices", outStr.c_str(), ini.c_str());
+        WritePrivateProfileStringW(L"Settings", L"InputDevices", inStr.c_str(), ini.c_str());
+        return;
+    }
+    HKEY hKey;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKey, L"OutputDevices", 0, REG_SZ, (const BYTE*)outStr.c_str(), (DWORD)((outStr.length() + 1) * sizeof(wchar_t)));
+        RegSetValueExW(hKey, L"InputDevices", 0, REG_SZ, (const BYTE*)inStr.c_str(), (DWORD)((inStr.length() + 1) * sizeof(wchar_t)));
+        RegCloseKey(hKey);
+    }
+}
+
+bool IsOutputDeviceSelected(const std::wstring& id) {
+    return std::find(g_selectedOutputDevices.begin(), g_selectedOutputDevices.end(), id) != g_selectedOutputDevices.end();
+}
+
+void ToggleOutputDeviceSelection(const std::wstring& id) {
+    auto it = std::find(g_selectedOutputDevices.begin(), g_selectedOutputDevices.end(), id);
+    if (it != g_selectedOutputDevices.end()) {
+        g_selectedOutputDevices.erase(it);
+    } else {
+        g_selectedOutputDevices.push_back(id);
+    }
+    SaveAudioDevicesSetting();
+}
+
+void ClearOutputDeviceSelection() {
+    g_selectedOutputDevices.clear();
+    SaveAudioDevicesSetting();
+}
+
+bool IsInputDeviceSelected(const std::wstring& id) {
+    return std::find(g_selectedInputDevices.begin(), g_selectedInputDevices.end(), id) != g_selectedInputDevices.end();
+}
+
+void ToggleInputDeviceSelection(const std::wstring& id) {
+    auto it = std::find(g_selectedInputDevices.begin(), g_selectedInputDevices.end(), id);
+    if (it != g_selectedInputDevices.end()) {
+        g_selectedInputDevices.erase(it);
+    } else {
+        g_selectedInputDevices.push_back(id);
+    }
+    SaveAudioDevicesSetting();
+}
+
+void ClearInputDeviceSelection() {
+    g_selectedInputDevices.clear();
+    SaveAudioDevicesSetting();
 }
 
 bool LoadClickEffectSetting() {

@@ -6,7 +6,7 @@
 
 #define MyAppName "dsnap"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.1.2"
+  #define MyAppVersion "1.2.0"
 #endif
 #define MyAppPublisher "datlp"
 #define MyAppURL "https://github.com/datlp/dsnap"

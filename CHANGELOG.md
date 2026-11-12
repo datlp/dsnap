@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.2.0] - 2026-11-13
+
+### Added
+- **Multi-Device WASAPI Audio & Microphone Mixer (Issue #22):** Upgraded the core audio engine (`src/audio.cpp`) to simultaneously capture and mix multiple output loopback devices (Speakers + Headphones) and multiple input devices (Microphones) in real time at `48000 Hz, 2-channel Stereo, 32-bit IEEE Float` (`f32le`) using `AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY` and a hardware `QueryPerformanceCounter` wall-clock pacer with `[-1.0f, 1.0f]` soft-clipping.
+- **Quick Microphone Toggle & `Audio Devices >` Submenu (Issue #22):** Added `[✓] Record Microphone` to the main system tray menu alongside `[✓] Record System Audio`, plus a dynamic `Audio Devices >` submenu enumerating hot-plugged Speakers, Headphones, and Microphones via `IMMDeviceEnumerator` and `PKEY_Device_FriendlyName`.
+- **Multi-Endpoint Configuration Persistence:** Saved `RecordMic`, `OutputDevices`, and `InputDevices` preferences in both Windows Registry (`HKCU\Software\dsnap`) and Portable Mode (`dsnap.ini`), with full 5-language localization (`EN`, `VI`, `ZH`, `KO`, `JA`).
+
+---
+
 ## [1.1.2] - 2026-11-13
 
 ### Added
