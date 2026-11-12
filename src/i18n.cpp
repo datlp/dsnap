@@ -167,3 +167,4 @@ const wchar_t* Tr(StringId id) {
     }
     return L"";
 }
+

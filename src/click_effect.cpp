@@ -213,3 +213,4 @@ void ShutdownClickEffect() {
     }
     UnregisterClassW(RIPPLE_CLASS, g_hInstance);
 }
+

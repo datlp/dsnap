@@ -1,0 +1,23 @@
+; ==============================================================================
+; dsnap.ini - Portable Configuration File for dsnap (Issue #11)
+; Place this file next to dsnap.exe to enable 100% zero-registry portable mode.
+; ==============================================================================
+
+[Settings]
+; Record desktop system audio in recordings (0 = Disabled, 1 = Enabled)
+RecordAudio=0
+
+; Visual mouse click ripple animations for screencasting (0 = Disabled, 1 = Enabled)
+HighlightClicks=1
+
+; Interface Language
+; Supported: Auto (default), en-US, vi-VN, zh-CN, ko-KR, ja-JP
+Language=Auto
+
+[Paths]
+; Custom output directories (leave empty for default Pictures\Screenshots & Videos\Captures)
+; Example: Screenshots=D:\Captures\Images
+Screenshots=
+; Example: Captures=D:\Captures\Videos
+Captures=
+

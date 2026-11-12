@@ -36,3 +36,4 @@ const wchar_t* Tr(StringId id);
 std::wstring GetLanguageCode(Language lang);
 Language ParseLanguageCode(const std::wstring& code);
 Language DetectSystemLanguage();
+

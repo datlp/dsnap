@@ -302,13 +302,13 @@ Windows Explorer Properties > Details was empty. Adding a `VERSIONINFO` resource
 ## Issue #16: [FX] Visual mouse click effects and ripple animations for screencasting
 
 **Labels:** `enhancement`, `ui`, `recording`
-**Status:** `Planned (v1.1.0)`
+**Status:** `Closed (v1.1.0-dev)`
 
 ### Description
 During screen recording, presentations, and tutorials, viewers cannot distinguish between left-clicks, right-clicks, or cursor movement. Standard screen recording tools (Camtasia, ScreenToGif) provide click highlight rings, but they are heavy commercial software.
 
 ### Functional Requirements
-- **Left-Click Ripple:** Expanding, decaying ring centered at cursor position (Accent Cyan `#00E5FF` or Gold `#FFD700`, radius 8px -> 36px, ~250ms).
+- **Left-Click Ripple:** Expanding, decaying ring centered at cursor position (Accent Cyan `#00E5FF`, radius 8px -> 36px, ~250ms).
 - **Right-Click Ripple:** Expanding, decaying ring with distinctive hue (Accent Coral/Red `#FF4500`, radius 8px -> 32px, ~250ms).
 - **Tray Context Menu Toggle:** Add `[v] Highlight Mouse Clicks` to enable/disable.
 - **Persistence:** Save setting in `dsnap.ini` (Portable) and Windows Registry (`HighlightClicks=1`).
@@ -318,12 +318,50 @@ During screen recording, presentations, and tutorials, viewers cannot distinguis
 - Layered transparent click-through window (`WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE`).
 - Hardware/GDI+ 32-bit ARGB double-buffered rendering at 60 FPS (< 0.2% CPU).
 
+**Commit:** `feat: implement visual mouse click ripple effects and multi-language i18n (#16, #17)`
+
+---
+
+## Issue #18: [Core/UIPI] Implement Hybrid Hotkey Engine (RegisterHotKey + WH_KEYBOARD_LL) to capture over elevated windows
+
+**Labels:** `bug`, `core`, `hotkey`, `uipi`, `windows`
+**Status:** `Closed (v1.1.0)`
+
+### Description
+When user focus is on an elevated window (running with Administrator rights such as CrystalDiskInfo, Task Manager, Registry Editor, or elevated PowerShell), pressing `PrintScreen` or `Shift + PrintScreen` did not trigger `dsnap`.
+
+### Root Cause
+Under Windows User Interface Privilege Isolation (UIPI), low-level keyboard hooks (`WH_KEYBOARD_LL`) installed by Medium Integrity processes are dropped by Windows when an elevated (High Integrity) window receives keyboard focus to prevent untrusted keylogging.
+
+### Architectural Solution
+- **Hybrid Dual-Engine Architecture:**
+  1. **Primary Kernel Hotkey:** Register `RegisterHotKey(g_hMainWnd, HOTKEY_ID_PHOTO, 0, VK_SNAPSHOT)` and `RegisterHotKey(g_hMainWnd, HOTKEY_ID_VIDEO, MOD_SHIFT, VK_SNAPSHOT)`. Because this is managed directly in Windows kernel (`win32k.sys`), `WM_HOTKEY` messages bypass UIPI and are dispatched to `dsnap` even when elevated Administrator windows are focused.
+  2. **Fallback Low-Level Hook:** Maintain `WH_KEYBOARD_LL` as an active fallback in case `RegisterHotKey` is claimed by the Windows 11 Snipping Tool.
+  3. **Event De-duplication:** 250ms timestamp debounce guard (`TriggerActionDebounced`) ensures single activation if both engines receive the keystroke.
+
+**Commit:** `feat(core): implement hybrid hotkey engine to bypass UIPI on elevated windows (#18)`
+
+---
+
+## Issue #19: [Core/Elevation] Add optional 'Run with Highest Privileges' via Windows Task Scheduler for zero-UAC elevated autostart
+
+**Labels:** `enhancement`, `core`, `security`, `ux`
+**Status:** `Planned (v1.2.0)`
+
+### Description
+Some power users require `dsnap` to run continuously with full Administrator privileges to capture deep hardware diagnostic tools and full-screen games without restrictions, but Windows blocks elevated programs in standard `Run` registry keys during login.
+
+### Architectural Solution
+- Follow the Microsoft PowerToys and AutoHotkey distribution model: maintain default `asInvoker` execution.
+- Add an optional setting `Run with Administrator Privileges` in the tray menu that configures a scheduled task via Windows Task Scheduler (`\dsnap_Autostart_Admin`) with `/RL HIGHEST`.
+- Allows `dsnap` to start automatically on login with full elevation without displaying UAC consent dialogs.
+
 ---
 
 ## Issue #17: [i18n] Multi-language localization (English, Vietnamese, Chinese, Korean, Japanese)
 
 **Labels:** `enhancement`, `i18n`, `ui`
-**Status:** `Planned (v1.1.0)`
+**Status:** `Closed (v1.1.0-dev)`
 
 ### Description
 `dsnap` is currently English-only. To provide a seamless localized experience for users globally and across Asia, the application should support the 5 major languages with zero external dependencies.
@@ -350,3 +388,41 @@ During screen recording, presentations, and tutorials, viewers cannot distinguis
 - Lightweight static `constexpr` string lookup table in `src/i18n.h` and `src/i18n.cpp`.
 - Zero third-party dependencies (no ICU, no gettext).
 - Executable size impact < 12 KB.
+
+**Commit:** `feat: implement visual mouse click ripple effects and multi-language i18n (#16, #17)`
+
+---
+
+## Issue #18: [Core/UIPI] Implement Hybrid Hotkey Engine (RegisterHotKey + WH_KEYBOARD_LL) to capture over elevated windows
+
+**Labels:** `bug`, `core`, `hotkey`, `uipi`, `windows`
+**Status:** `Closed (v1.1.0)`
+
+### Description
+When user focus is on an elevated window (running with Administrator rights such as CrystalDiskInfo, Task Manager, Registry Editor, or elevated PowerShell), pressing `PrintScreen` or `Shift + PrintScreen` did not trigger `dsnap`.
+
+### Root Cause
+Under Windows User Interface Privilege Isolation (UIPI), low-level keyboard hooks (`WH_KEYBOARD_LL`) installed by Medium Integrity processes are dropped by Windows when an elevated (High Integrity) window receives keyboard focus to prevent untrusted keylogging.
+
+### Architectural Solution
+- **Hybrid Dual-Engine Architecture:**
+  1. **Primary Kernel Hotkey:** Register `RegisterHotKey(g_hMainWnd, HOTKEY_ID_PHOTO, 0, VK_SNAPSHOT)` and `RegisterHotKey(g_hMainWnd, HOTKEY_ID_VIDEO, MOD_SHIFT, VK_SNAPSHOT)`. Because this is managed directly in Windows kernel (`win32k.sys`), `WM_HOTKEY` messages bypass UIPI and are dispatched to `dsnap` even when elevated Administrator windows are focused.
+  2. **Fallback Low-Level Hook:** Maintain `WH_KEYBOARD_LL` as an active fallback in case `RegisterHotKey` is claimed by the Windows 11 Snipping Tool.
+  3. **Event De-duplication:** 250ms timestamp debounce guard (`TriggerActionDebounced`) ensures single activation if both engines receive the keystroke.
+
+**Commit:** `feat(core): implement hybrid hotkey engine to bypass UIPI on elevated windows (#18)`
+
+---
+
+## Issue #19: [Core/Elevation] Add optional 'Run with Highest Privileges' via Windows Task Scheduler for zero-UAC elevated autostart
+
+**Labels:** `enhancement`, `core`, `security`, `ux`
+**Status:** `Planned (v1.2.0)`
+
+### Description
+Some power users require `dsnap` to run continuously with full Administrator privileges to capture deep hardware diagnostic tools and full-screen games without restrictions, but Windows blocks elevated programs in standard `Run` registry keys during login.
+
+### Architectural Solution
+- Follow the Microsoft PowerToys and AutoHotkey distribution model: maintain default `asInvoker` execution.
+- Add an optional setting `Run with Administrator Privileges` in the tray menu that configures a scheduled task via Windows Task Scheduler (`\dsnap_Autostart_Admin`) with `/RL HIGHEST`.
+- Allows `dsnap` to start automatically on login with full elevation without displaying UAC consent dialogs.

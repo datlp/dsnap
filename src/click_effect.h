@@ -12,3 +12,4 @@ void EnableClickEffect(bool enable);
 
 // Check if click effect is currently enabled
 bool IsClickEffectEnabled();
+

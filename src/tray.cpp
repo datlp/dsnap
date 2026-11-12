@@ -5,6 +5,7 @@
 #include "recorder.h"
 #include "click_effect.h"
 #include "i18n.h"
+#include "hotkey.h"
 
 NOTIFYICONDATAW g_nid = { 0 };
 
@@ -167,6 +168,14 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case IDM_EXIT:
             DestroyWindow(hWnd);
             break;
+        }
+        return 0;
+    }
+    case WM_HOTKEY: {
+        if (wParam == HOTKEY_ID_PHOTO) {
+            TriggerActionDebounced(TRIGGER_PHOTO);
+        } else if (wParam == HOTKEY_ID_VIDEO) {
+            TriggerActionDebounced(TRIGGER_VIDEO);
         }
         return 0;
     }

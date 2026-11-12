@@ -6,7 +6,7 @@
 
 #define MyAppName "dsnap"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.2"
+  #define MyAppVersion "1.1.0"
 #endif
 #define MyAppPublisher "datlp"
 #define MyAppURL "https://github.com/datlp/dsnap"
@@ -50,6 +50,8 @@ DisableWelcomePage=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

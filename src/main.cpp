@@ -81,13 +81,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     HWND hWnd = CreateWindowExW(0, BG_CLASS, L"dsnap_bg", WS_OVERLAPPED, 0, 0, 0, 0, NULL, NULL, hInstance, NULL);
     g_hMainWnd = hWnd;
 
-    // 6. Install Low-Level Keyboard Hook
-    g_hKeyboardHook = SetWindowsHookEx(
-        WH_KEYBOARD_LL,
-        LowLevelKeyboardProc,
-        hInstance,
-        0
-    );
+    // 6. Initialize Hybrid Hotkey Engine (RegisterHotKey + Low-Level Hook fallback)
+    InitHotkeys(hWnd);
 
     // 7. Centralized Win32 Message Loop
     MSG msg;
@@ -98,10 +93,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
     // 8. Clean up system resources
     ShutdownClickEffect();
-    if (g_hKeyboardHook) {
-        UnhookWindowsHookEx(g_hKeyboardHook);
-        g_hKeyboardHook = NULL;
-    }
+    CleanupHotkeys(hWnd);
     CleanupFrozenBitmaps();
     UnregisterClassW(OVERLAY_CLASS, hInstance);
     UnregisterClassW(BORDER_CLASS, hInstance);
