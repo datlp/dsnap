@@ -533,29 +533,29 @@
 
       <div class="cta-group">
         <div class="btn-dropdown-wrapper">
-          <a id="btnMainDownload" href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-setup.exe" class="btn-primary">
+          <a id="btnMainDownload" href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.4.0-setup.exe" class="btn-primary">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
             </svg>
-            <span id="txtDownloadBtn">Download for Windows (v1.3.0)</span>
+            <span id="txtDownloadBtn">Download for Windows (v1.4.0)</span>
           </a>
           <button class="btn-dropdown-toggle" id="btnToggleDropdown" title="Download Options">▼</button>
           <div class="dropdown-menu" id="dropdownMenu">
-            <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-setup.exe" class="dropdown-item">
-              <strong>dsnap-v1.3.0-setup.exe</strong>
+            <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.4.0-setup.exe" class="dropdown-item">
+              <strong>dsnap-v1.4.0-setup.exe</strong>
               <span>Full Inno Setup Installer (~2.2 MB)</span>
             </a>
-            <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-windows-x64.exe" class="dropdown-item">
-              <strong>dsnap-v1.3.0-windows-x64.exe</strong>
-              <span>Standalone Portable (~476 KB)</span>
+            <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.4.0-windows-x64.exe" class="dropdown-item">
+              <strong>dsnap-v1.4.0-windows-x64.exe</strong>
+              <span>Standalone Portable (~490 KB)</span>
             </a>
-            <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-windows-x64.zip" class="dropdown-item">
-              <strong>dsnap-v1.3.0-windows-x64.zip</strong>
-              <span>ZIP Package with License (~200 KB)</span>
+            <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.4.0-windows-x64.zip" class="dropdown-item">
+              <strong>dsnap-v1.4.0-windows-x64.zip</strong>
+              <span>ZIP Package with License (~210 KB)</span>
             </a>
             <a href="https://github.com/datlp/dsnap/releases/latest/download/dsnap.exe" class="dropdown-item">
               <strong>dsnap.exe</strong>
-              <span>Direct unversioned link (~476 KB)</span>
+              <span>Direct unversioned link (~490 KB)</span>
             </a>
           </div>
         </div>
@@ -669,15 +669,15 @@
 
       <div class="changelog-box">
         <div class="changelog-header">
-          <div class="changelog-version">v1.3.0</div>
+          <div class="changelog-version">v1.4.0</div>
           <div class="changelog-date">November 26, 2026</div>
         </div>
         <div class="changelog-content">
           <ul>
+            <li><strong>Tray Menu Icons &amp; Organized Submenus:</strong> Added native GDI+ vector icons and grouped <code>Screenshots &gt;</code> / <code>Recordings &gt;</code> submenus with Open Folder, Clear Folder (with confirmation), and per-mode Clipboard toggles (Image and/or Path).</li>
+            <li><strong>One-Liner PowerShell Installer:</strong> Run <code>irm https://dsnap.writephudat.workers.dev | iex</code> for silent Admin installation with SHA256 verification.</li>
             <li><strong>Auto-Copy Recording Path:</strong> Automatically copies the saved <code>.mp4</code> recording file path to the Windows clipboard when screen recording stops.</li>
-            <li><strong>Multi-Device WASAPI Audio &amp; Microphone Mixer:</strong> Real-time mixing of multiple loopback output devices and microphones at 48 kHz Stereo IEEE Float, with tray device selector submenu.</li>
-            <li><strong>Zero-UAC Elevated Autostart &amp; Admin Setup:</strong> Optional "Always Run as Administrator" installer task with Task Scheduler autostart.</li>
-            <li><strong>Hybrid Hotkey Engine &amp; Click Ripple FX:</strong> Captures over elevated windows (UIPI bypass), 60 FPS mouse click animations, and 5-language localization (<code>EN</code>, <code>VI</code>, <code>ZH</code>, <code>KO</code>, <code>JA</code>).</li>
+            <li><strong>Multi-Device WASAPI Audio &amp; Zero-UAC Autostart:</strong> Real-time loopback + microphone mixing, tray device selector, and Task Scheduler elevated autostart.</li>
           </ul>
         </div>
       </div>

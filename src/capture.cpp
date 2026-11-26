@@ -105,10 +105,32 @@ void SaveScreenshotFromFrozen(int selX, int selY, int w, int h) {
     }
     delete gdiBitmap;
 
-    // Copy to Clipboard
-    if (OpenClipboard(NULL)) {
+    // Copy to Clipboard (Image and/or Path based on user preferences)
+    if ((g_copyScreenshotImage || g_copyScreenshotPath) && OpenClipboard(NULL)) {
         EmptyClipboard();
-        SetClipboardData(CF_BITMAP, hCropBitmap);
+        if (g_copyScreenshotImage) {
+            if (!SetClipboardData(CF_BITMAP, hCropBitmap)) {
+                DeleteObject(hCropBitmap);
+            }
+        } else {
+            DeleteObject(hCropBitmap);
+        }
+        if (g_copyScreenshotPath) {
+            size_t bytes = (filePath.size() + 1) * sizeof(wchar_t);
+            HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+            if (hMem) {
+                void* pMem = GlobalLock(hMem);
+                if (pMem) {
+                    memcpy(pMem, filePath.c_str(), bytes);
+                    GlobalUnlock(hMem);
+                    if (!SetClipboardData(CF_UNICODETEXT, hMem)) {
+                        GlobalFree(hMem);
+                    }
+                } else {
+                    GlobalFree(hMem);
+                }
+            }
+        }
         CloseClipboard();
     } else {
         DeleteObject(hCropBitmap);

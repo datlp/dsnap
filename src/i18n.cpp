@@ -63,8 +63,17 @@ const wchar_t* Tr(StringId id) {
         switch (id) {
         case StringId::MenuCapturePhoto:         return L"Chụp màn hình (PrintScreen)";
         case StringId::MenuRecordVideo:          return L"Quay màn hình (Shift + PrtScn)";
+        case StringId::MenuScreenshots:          return L"Ảnh chụp màn hình";
+        case StringId::MenuRecordings:           return L"Video quay màn hình";
         case StringId::MenuOpenScreenshots:      return L"Mở thư mục ảnh chụp";
         case StringId::MenuOpenCaptures:         return L"Mở thư mục video quay";
+        case StringId::MenuClearScreenshots:     return L"Dọn sạch thư mục ảnh chụp";
+        case StringId::MenuClearCaptures:        return L"Dọn sạch thư mục video quay";
+        case StringId::MenuAutoCopyImage:        return L"Tự động copy ảnh vào Clipboard";
+        case StringId::MenuAutoCopyPath:         return L"Tự động copy đường dẫn vào Clipboard";
+        case StringId::ClearConfirmTitle:        return L"dsnap - Xác nhận xóa";
+        case StringId::ClearConfirmBody:         return L"Bạn có chắc chắn muốn xóa %d tệp trong thư mục này không?";
+        case StringId::ClearEmptyBody:           return L"Thư mục hiện đang trống (không có tệp dsnap nào).";
         case StringId::MenuToggleAudio:          return L"Ghi âm thanh hệ thống";
         case StringId::MenuToggleMic:            return L"Ghi âm Microphone";
         case StringId::MenuAudioDevices:         return L"Thiết bị âm thanh";
@@ -91,8 +100,17 @@ const wchar_t* Tr(StringId id) {
         switch (id) {
         case StringId::MenuCapturePhoto:         return L"截取屏幕 (PrintScreen)";
         case StringId::MenuRecordVideo:          return L"录制屏幕 (Shift + PrtScn)";
+        case StringId::MenuScreenshots:          return L"截图选项";
+        case StringId::MenuRecordings:           return L"录屏选项";
         case StringId::MenuOpenScreenshots:      return L"打开截图文件夹";
         case StringId::MenuOpenCaptures:         return L"打开录制文件夹";
+        case StringId::MenuClearScreenshots:     return L"清空截图文件夹";
+        case StringId::MenuClearCaptures:        return L"清空录制文件夹";
+        case StringId::MenuAutoCopyImage:        return L"自动复制图片到剪贴板";
+        case StringId::MenuAutoCopyPath:         return L"自动复制文件路径到剪贴板";
+        case StringId::ClearConfirmTitle:        return L"dsnap - 确认清理";
+        case StringId::ClearConfirmBody:         return L"确定要删除此文件夹中的 %d 个文件吗？";
+        case StringId::ClearEmptyBody:           return L"文件夹中暂无 dsnap 文件。";
         case StringId::MenuToggleAudio:          return L"录制系统声音";
         case StringId::MenuToggleMic:            return L"录制麦克风";
         case StringId::MenuAudioDevices:         return L"音频设备";
@@ -119,8 +137,17 @@ const wchar_t* Tr(StringId id) {
         switch (id) {
         case StringId::MenuCapturePhoto:         return L"화면 캡처 (PrintScreen)";
         case StringId::MenuRecordVideo:          return L"화면 녹화 (Shift + PrtScn)";
+        case StringId::MenuScreenshots:          return L"스크린샷";
+        case StringId::MenuRecordings:           return L"화면 녹화";
         case StringId::MenuOpenScreenshots:      return L"스크린샷 폴더 열기";
         case StringId::MenuOpenCaptures:         return L"녹화 폴더 열기";
+        case StringId::MenuClearScreenshots:     return L"스크린샷 폴더 비우기";
+        case StringId::MenuClearCaptures:        return L"녹화 폴더 비우기";
+        case StringId::MenuAutoCopyImage:        return L"클립보드에 이미지 자동 복사";
+        case StringId::MenuAutoCopyPath:         return L"클립보드에 파일 경로 자동 복사";
+        case StringId::ClearConfirmTitle:        return L"dsnap - 삭제 확인";
+        case StringId::ClearConfirmBody:         return L"이 폴더에서 %d개의 파일을 삭제하시겠습니까?";
+        case StringId::ClearEmptyBody:           return L"폴더에 dsnap 파일이 없습니다.";
         case StringId::MenuToggleAudio:          return L"시스템 오디오 녹음";
         case StringId::MenuToggleMic:            return L"마이크 녹음";
         case StringId::MenuAudioDevices:         return L"오디오 장치";
@@ -147,8 +174,17 @@ const wchar_t* Tr(StringId id) {
         switch (id) {
         case StringId::MenuCapturePhoto:         return L"画面キャプチャ (PrintScreen)";
         case StringId::MenuRecordVideo:          return L"画面録画 (Shift + PrtScn)";
+        case StringId::MenuScreenshots:          return L"スクリーンショット";
+        case StringId::MenuRecordings:           return L"画面録画";
         case StringId::MenuOpenScreenshots:      return L"スクリーンショットフォルダを開く";
         case StringId::MenuOpenCaptures:         return L"録画フォルダを開く";
+        case StringId::MenuClearScreenshots:     return L"スクリーンショットフォルダを空にする";
+        case StringId::MenuClearCaptures:        return L"録画フォルダを空にする";
+        case StringId::MenuAutoCopyImage:        return L"画像をクリップボードに自動コピー";
+        case StringId::MenuAutoCopyPath:         return L"ファイルパスをクリップボードに自動コピー";
+        case StringId::ClearConfirmTitle:        return L"dsnap - 削除の確認";
+        case StringId::ClearConfirmBody:         return L"このフォルダ内の %d 個のファイルを削除しますか？";
+        case StringId::ClearEmptyBody:           return L"フォルダ内に dsnap ファイルはありません。";
         case StringId::MenuToggleAudio:          return L"システム音声を録音";
         case StringId::MenuToggleMic:            return L"マイクを録音";
         case StringId::MenuAudioDevices:         return L"オーディオデバイス";
@@ -176,8 +212,17 @@ const wchar_t* Tr(StringId id) {
         switch (id) {
         case StringId::MenuCapturePhoto:         return L"Capture Screen (PrintScreen)";
         case StringId::MenuRecordVideo:          return L"Record Screen (Shift + PrtScn)";
+        case StringId::MenuScreenshots:          return L"Screenshots";
+        case StringId::MenuRecordings:           return L"Recordings";
         case StringId::MenuOpenScreenshots:      return L"Open Screenshots Folder";
         case StringId::MenuOpenCaptures:         return L"Open Recordings Folder";
+        case StringId::MenuClearScreenshots:     return L"Clear Screenshots Folder";
+        case StringId::MenuClearCaptures:        return L"Clear Recordings Folder";
+        case StringId::MenuAutoCopyImage:        return L"Auto-Copy Image to Clipboard";
+        case StringId::MenuAutoCopyPath:         return L"Auto-Copy Path to Clipboard";
+        case StringId::ClearConfirmTitle:        return L"dsnap - Confirm Clear";
+        case StringId::ClearConfirmBody:         return L"Are you sure you want to delete %d file(s) from this folder?";
+        case StringId::ClearEmptyBody:           return L"No dsnap files found in this folder.";
         case StringId::MenuToggleAudio:          return L"Record System Audio";
         case StringId::MenuToggleMic:            return L"Record Microphone";
         case StringId::MenuAudioDevices:         return L"Audio Devices";

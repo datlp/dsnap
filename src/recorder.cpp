@@ -411,7 +411,7 @@ void StopRecording(bool cancel) {
                 CloseHandle(g_ffmpegPi.hThread);
             }
 
-            if (!g_currentRecordingPath.empty() &&
+            if (g_copyRecordingPath && !g_currentRecordingPath.empty() &&
                 GetFileAttributesW(g_currentRecordingPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
                 CopyTextToClipboard(g_currentRecordingPath);
             }

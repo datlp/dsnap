@@ -5,6 +5,9 @@
 extern bool g_recordAudio;
 extern bool g_recordMic;
 extern bool g_highlightClicks;
+extern bool g_copyScreenshotImage;
+extern bool g_copyScreenshotPath;
+extern bool g_copyRecordingPath;
 extern std::vector<std::wstring> g_selectedOutputDevices;
 extern std::vector<std::wstring> g_selectedInputDevices;
 
@@ -33,6 +36,11 @@ void ClearInputDeviceSelection();
 
 bool LoadClickEffectSetting();
 void SaveClickEffectSetting(bool enable);
+
+void LoadClipboardSettings();
+void SaveClipboardSetting(const wchar_t* key, bool enable);
+int CountMatchingFiles(const std::wstring& dir, const wchar_t* pattern);
+int ClearMatchingFiles(const std::wstring& dir, const wchar_t* pattern);
 
 Language LoadLanguageSetting();
 void SaveLanguageSetting(Language lang);

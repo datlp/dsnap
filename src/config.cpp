@@ -7,6 +7,9 @@
 bool g_recordAudio = false;
 bool g_recordMic = false;
 bool g_highlightClicks = false;
+bool g_copyScreenshotImage = true;
+bool g_copyScreenshotPath = false;
+bool g_copyRecordingPath = true;
 std::vector<std::wstring> g_selectedOutputDevices;
 std::vector<std::wstring> g_selectedInputDevices;
 
@@ -299,6 +302,84 @@ void SaveMicSetting(bool enable) {
         RegSetValueExW(hKey, L"RecordMic", 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
         RegCloseKey(hKey);
     }
+}
+
+static bool LoadBoolSetting(const wchar_t* key, bool defaultVal) {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        return GetPrivateProfileIntW(L"Settings", key, defaultVal ? 1 : 0, ini.c_str()) != 0;
+    }
+    HKEY hKey;
+    DWORD val = defaultVal ? 1 : 0;
+    DWORD size = sizeof(val);
+    DWORD type = REG_DWORD;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExW(hKey, key, NULL, &type, (LPBYTE)&val, &size) == ERROR_SUCCESS) {
+            RegCloseKey(hKey);
+            return (val != 0);
+        }
+        RegCloseKey(hKey);
+    }
+    return defaultVal;
+}
+
+void SaveClipboardSetting(const wchar_t* key, bool enable) {
+    if (IsPortableMode()) {
+        std::wstring ini = GetIniFilePath();
+        WritePrivateProfileStringW(L"Settings", key, enable ? L"1" : L"0", ini.c_str());
+        return;
+    }
+    HKEY hKey;
+    DWORD val = enable ? 1 : 0;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\dsnap", 0, NULL, 0, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
+        RegSetValueExW(hKey, key, 0, REG_DWORD, (const BYTE*)&val, sizeof(val));
+        RegCloseKey(hKey);
+    }
+}
+
+void LoadClipboardSettings() {
+    g_copyScreenshotImage = LoadBoolSetting(L"CopyScreenshotImage", true);
+    g_copyScreenshotPath = LoadBoolSetting(L"CopyScreenshotPath", false);
+    g_copyRecordingPath = LoadBoolSetting(L"CopyRecordingPath", true);
+}
+
+int CountMatchingFiles(const std::wstring& dir, const wchar_t* pattern) {
+    std::wstring searchPath = dir + L"\\" + pattern;
+    WIN32_FIND_DATAW fd;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &fd);
+    if (hFind == INVALID_HANDLE_VALUE) return 0;
+
+    int count = 0;
+    do {
+        if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            ++count;
+        }
+    } while (FindNextFileW(hFind, &fd));
+    FindClose(hFind);
+    return count;
+}
+
+int ClearMatchingFiles(const std::wstring& dir, const wchar_t* pattern) {
+    std::wstring searchPath = dir + L"\\" + pattern;
+    WIN32_FIND_DATAW fd;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &fd);
+    if (hFind == INVALID_HANDLE_VALUE) return 0;
+
+    std::vector<std::wstring> files;
+    do {
+        if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            files.push_back(dir + L"\\" + fd.cFileName);
+        }
+    } while (FindNextFileW(hFind, &fd));
+    FindClose(hFind);
+
+    int deleted = 0;
+    for (const auto& f : files) {
+        if (DeleteFileW(f.c_str())) {
+            ++deleted;
+        }
+    }
+    return deleted;
 }
 
 static std::vector<std::wstring> SplitDeviceIds(const std::wstring& str) {

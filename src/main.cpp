@@ -50,6 +50,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     g_recordAudio = LoadAudioSetting();
     g_recordMic = LoadMicSetting();
     LoadAudioDevicesSetting();
+    LoadClipboardSettings();
 
     // 2. Load NTDLL function pointers for process suspension (Pause / Resume recording)
     InitRecorderNTDLL();

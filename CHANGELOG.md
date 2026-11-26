@@ -5,6 +5,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.4.0] - 2026-11-26
+
+### Added
+- **Tray Menu Vector Icons:** Added native 16×16 ARGB GDI+ icons for all tray menu actions and submenus (`Capture Screen`, `Record Screen`, `Screenshots`, `Recordings`, `Open Folder`, `Clear Folder`, `Audio Devices`, `Language`, `Exit`) in `src/tray.cpp`.
+- **Organized `Screenshots >` and `Recordings >` Submenus:** Grouped folder actions and clipboard preferences into dedicated submenus:
+  - `Open Screenshots Folder` / `Open Recordings Folder`
+  - `Clear Screenshots Folder` / `Clear Recordings Folder` (safely deletes `dsnap-screenshot-*.png` or `dsnap-recording-*.mp4` after a confirmation prompt showing file count)
+  - Per-mode clipboard toggles: `Auto-Copy Image to Clipboard` (screenshots), `Auto-Copy Path to Clipboard` (screenshots & recordings), persisted in Registry (`HKCU\Software\dsnap`) and Portable `dsnap.ini`.
+- **One-Liner PowerShell Installer (`irm https://dsnap.writephudat.workers.dev | iex`):** Added Cloudflare Worker script (`worker.js`) that serves an automated silent + admin installer fetching the latest GitHub release with SHA256 verification.
+
+### Changed
+- Bumped application version to `1.4.0` across `res/version.h`, `installer/dsnap.iss`, `README.md`, and `docs/index.html`.
+
+---
+
 ## [1.3.0] - 2026-11-26
 
 ### Added
