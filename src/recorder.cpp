@@ -342,6 +342,28 @@ void TogglePauseRecording() {
     if (g_hWndRecordingToolbar) InvalidateRect(g_hWndRecordingToolbar, NULL, TRUE);
 }
 
+static void CopyTextToClipboard(const std::wstring& text) {
+    if (text.empty() || !OpenClipboard(NULL)) {
+        return;
+    }
+    EmptyClipboard();
+    size_t bytes = (text.size() + 1) * sizeof(wchar_t);
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+    if (hMem) {
+        void* pMem = GlobalLock(hMem);
+        if (pMem) {
+            memcpy(pMem, text.c_str(), bytes);
+            GlobalUnlock(hMem);
+            if (!SetClipboardData(CF_UNICODETEXT, hMem)) {
+                GlobalFree(hMem);
+            }
+        } else {
+            GlobalFree(hMem);
+        }
+    }
+    CloseClipboard();
+}
+
 void StopRecording(bool cancel) {
     if (g_isRecording) {
         StopSystemAudioLoopback();
@@ -387,6 +409,11 @@ void StopRecording(bool cancel) {
                 }
                 CloseHandle(g_ffmpegPi.hProcess);
                 CloseHandle(g_ffmpegPi.hThread);
+            }
+
+            if (!g_currentRecordingPath.empty() &&
+                GetFileAttributesW(g_currentRecordingPath.c_str()) != INVALID_FILE_ATTRIBUTES) {
+                CopyTextToClipboard(g_currentRecordingPath);
             }
         }
 

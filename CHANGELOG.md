@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.3.0] - 2026-11-26
+
+### Added
+- **Auto-Copy Recording Path to Clipboard:** Automatically copies the saved `.mp4` recording file path (`CF_UNICODETEXT`) to the Windows clipboard when screen recording stops (`StopRecording` in `src/recorder.cpp`), making it instant to paste or share the recorded file path.
+
+### Changed
+- Bumped application version to `1.3.0` in `res/version.h`, `installer/dsnap.iss`, `README.md`, and `docs/index.html`.
+
+---
+
 ## [1.2.0] - 2026-11-13
 
 ### Added
