@@ -36,17 +36,22 @@
 
 ## 🚀 Quick Start
 
-### Option 1: Windows Package Manager (Winget)
+### Option 1: PowerShell One-Liner (Silent + Admin, Latest Release)
+```powershell
+irm https://dsnap.writephudat.workers.dev | iex
+```
+
+### Option 2: Windows Package Manager (Winget)
 ```cmd
 winget install datlp.dsnap
 ```
 
-### Option 2: Setup Wizard (Recommended)
+### Option 3: Setup Wizard (Recommended)
 Download and run the dual-mode Inno Setup installer:
 * [⬇️ **Download dsnap-v1.3.0-setup.exe**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-setup.exe) (~2.2 MB)
 * Supports **All Users** (System-wide in `C:\Program Files\dsnap` with UAC), **Current User** (Non-admin in `%LocalAppData%\Programs\dsnap`), and optional **Always run as Administrator** with zero-UAC Task Scheduler autostart.
 
-### Option 3: Portable Edition (No Install Required)
+### Option 4: Portable Edition (No Install Required)
 * [⚡ **dsnap-v1.3.0-windows-x64.exe**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-windows-x64.exe) (~476 KB standalone executable)
 * [📦 **dsnap-v1.3.0-windows-x64.zip**](https://github.com/datlp/dsnap/releases/latest/download/dsnap-v1.3.0-windows-x64.zip) (~220 KB complete package with license & `dsnap.ini.example`)
 * [🛡️ **SHA256SUMS.txt**](https://github.com/datlp/dsnap/releases/latest/download/SHA256SUMS.txt) (Cryptographic verification checksums)
